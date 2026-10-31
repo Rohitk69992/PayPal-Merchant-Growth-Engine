@@ -3,14 +3,14 @@ import { NavLink } from 'react-router-dom';
 import {
   Home,
   Receipt,
-  TrendingUp,
-  Gift,
-  MoreHorizontal,
-  Target,
+  Boxes,
   Package,
-  Bitcoin,
-  ShieldCheck,
+  Target,
+  CreditCard,
+  Settings,
+  MoreHorizontal,
   X,
+  TrendingUp,
 } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
@@ -18,16 +18,17 @@ export const MobileNav: React.FC = () => {
 
   const mainTabs = [
     { name: 'Home', path: '/', icon: Home },
-    { name: 'Transactions', path: '/transactions', icon: Receipt },
-    { name: 'Grow', path: '/grow', icon: TrendingUp },
-    { name: 'Rewards', path: '/rewards', icon: Gift },
+    { name: 'Catalog', path: '/products', icon: Boxes },
+    { name: 'Inventory', path: '/inventory', icon: Package },
+    { name: 'Marketing', path: '/marketing', icon: Target },
   ];
 
   const moreItems = [
-    { name: 'AI Marketing Insights', path: '/marketing', icon: Target },
-    { name: 'AI Inventory Assistant', path: '/inventory', icon: Package },
-    { name: 'Crypto', path: '/crypto', icon: Bitcoin },
-    { name: 'Account Health', path: '/account-health', icon: ShieldCheck },
+    { name: 'Growth Engine', path: '/grow', icon: TrendingUp },
+    { name: 'Sales Entry', path: '/sales', icon: TrendingUp },
+    { name: 'Transactions', path: '/transactions', icon: Receipt },
+    { name: 'PayPal Integration', path: '/paypal', icon: CreditCard },
+    { name: 'Settings & Audit', path: '/settings', icon: Settings },
   ];
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -37,7 +38,7 @@ export const MobileNav: React.FC = () => {
 
   return (
     <>
-      {/* "More" Drawer for Mobile Wireframe */}
+      {/* "More" Drawer for Mobile Viewport */}
       {isMoreMenuOpen && (
         <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs flex items-end">
           <div className="bg-white w-full rounded-t-3xl p-5 shadow-2xl border-t border-slate-200">
@@ -45,7 +46,7 @@ export const MobileNav: React.FC = () => {
               <span className="font-bold text-slate-800 text-sm">All Merchant Growth Tools</span>
               <button
                 onClick={() => setIsMoreMenuOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:bg-slate-100"
+                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -71,7 +72,7 @@ export const MobileNav: React.FC = () => {
       )}
 
       {/* Main Bottom Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg lg:hidden">
         <div className="max-w-md mx-auto grid grid-cols-5 h-16">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;

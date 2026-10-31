@@ -1,221 +1,416 @@
 import type {
-  MerchantProfile,
+  User,
+  Merchant,
+  ProductInventory,
+  DailySale,
   Transaction,
+  Customer,
   CustomerSegment,
   LocationDistribution,
   CategoryPreference,
-  ProductInventory,
   ProductForecast,
-  CryptoHolding,
-  RewardsSummary,
-  AccountHealthStatus,
+  ReorderRecommendation,
+  PurchaseOrderDraft,
   MarketingCampaignDraft,
+  PayPalConnectionStatus,
+  AnalyticsOverview,
+  AgentChatMessage,
 } from '../types';
 
-import {
-  INITIAL_MERCHANT_PROFILE,
-  INITIAL_TRANSACTIONS,
-  INITIAL_CUSTOMER_SEGMENTS,
-  INITIAL_LOCATIONS,
-  INITIAL_PREFERENCES,
-  INITIAL_INVENTORY,
-  INITIAL_FORECAST,
-  INITIAL_CRYPTO,
-  INITIAL_REWARDS,
-  INITIAL_ACCOUNT_HEALTH,
-  INITIAL_CAMPAIGNS,
-} from './demoData';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
 
-// Local in-memory state for interactive mutations during demo
-const merchantProfile = { ...INITIAL_MERCHANT_PROFILE };
-const transactions = [...INITIAL_TRANSACTIONS];
-const inventory = [...INITIAL_INVENTORY];
-const campaigns = [...INITIAL_CAMPAIGNS];
+class ApiClient {
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const currentMerchantId = localStorage.getItem('current_merchant_id');
+    if (currentMerchantId) {
+      headers['X-Merchant-ID'] = currentMerchantId;
+    }
+    return headers;
+  }
 
-export const apiClient = {
-  // Merchant Profile
-  getMerchantProfile: async (): Promise<MerchantProfile> => {
-    return { ...merchantProfile };
-  },
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${BASE_URL}${endpoint}`;
+    const headers = {
+      ...this.getHeaders(),
+      ...(options.headers as Record<string, string>),
+    };
 
-  // Transactions
-  getTransactions: async (filter?: {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson.detail) {
+          errorMessage = typeof errorJson.detail === 'string' 
+            ? errorJson.detail 
+            : JSON.stringify(errorJson.detail);
+        }
+      } catch {
+        // Fall back to status text
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Handle 204 No Content
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return response.json();
+  }
+
+  // --- Auth Endpoints ---
+  async register(data: { email: string; password: string; full_name: string }): Promise<{ access_token: string; user: User }> {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async login(data: { email: string; password: string }): Promise<{ access_token: string; user: User }> {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMe(): Promise<User> {
+    return this.request('/auth/me');
+  }
+
+  // --- Merchant Endpoints ---
+  async createMerchant(data: {
+    business_name: string;
+    currency: string;
+    category?: string;
+    address?: string;
+    phone?: string;
+  }): Promise<Merchant> {
+    return this.request('/merchants/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getCurrentMerchant(): Promise<Merchant> {
+    return this.request('/merchants/me');
+  }
+
+  async getMyMerchants(): Promise<Merchant[]> {
+    return this.request('/merchants/my-merchants');
+  }
+
+  // --- Products Endpoints ---
+  async getProducts(params?: { category?: string; search?: string }): Promise<ProductInventory[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.search) searchParams.append('search', params.search);
+    const qs = searchParams.toString();
+    const raw = await this.request<any[]>(`/products/${qs ? `?${qs}` : ''}`);
+    
+    return raw.map((p) => ({
+      id: p.id,
+      merchant_id: p.merchant_id,
+      sku: p.sku,
+      name: p.name,
+      category: p.category || 'General',
+      unitCost: p.unit_cost,
+      unitPrice: p.unit_price,
+      stockOnHand: p.stock_on_hand,
+      reorderThreshold: p.reorder_point,
+      safetyStock: p.safety_stock,
+      leadTimeDays: p.lead_time_days,
+      supplierName: p.supplier_name || 'Standard Supplier',
+      status: p.stock_on_hand <= 0 ? 'OUT_OF_STOCK' : p.stock_on_hand <= p.reorder_point ? 'LOW_STOCK' : 'IN_STOCK',
+      created_at: p.created_at,
+    }));
+  }
+
+  async createProduct(data: {
+    sku: string;
+    name: string;
+    category?: string;
+    unit_cost: number;
+    unit_price: number;
+    stock_on_hand?: number;
+    reorder_point?: number;
+    safety_stock?: number;
+    lead_time_days?: number;
+    supplier_name?: string;
+  }): Promise<ProductInventory> {
+    const raw: any = await this.request('/products/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return {
+      id: raw.id,
+      merchant_id: raw.merchant_id,
+      sku: raw.sku,
+      name: raw.name,
+      category: raw.category || 'General',
+      unitCost: raw.unit_cost,
+      unitPrice: raw.unit_price,
+      stockOnHand: raw.stock_on_hand,
+      reorderThreshold: raw.reorder_point,
+      safetyStock: raw.safety_stock,
+      leadTimeDays: raw.lead_time_days,
+      supplierName: raw.supplier_name || 'Standard Supplier',
+      status: raw.stock_on_hand <= 0 ? 'OUT_OF_STOCK' : raw.stock_on_hand <= raw.reorder_point ? 'LOW_STOCK' : 'IN_STOCK',
+    };
+  }
+
+  async importProductsCsv(csvContent: string): Promise<{ imported_count: number; message: string }> {
+    return this.request('/products/import-csv', {
+      method: 'POST',
+      body: JSON.stringify({ csv_content: csvContent }),
+    });
+  }
+
+  // --- Sales Endpoints ---
+  async getSales(params?: { product_id?: string; limit?: number }): Promise<DailySale[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.product_id) searchParams.append('product_id', params.product_id);
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    const qs = searchParams.toString();
+    return this.request(`/sales/${qs ? `?${qs}` : ''}`);
+  }
+
+  async recordSale(data: {
+    product_id: string;
+    units_sold: number;
+    revenue: number;
+    date?: string;
+    channel?: string;
+  }): Promise<DailySale> {
+    return this.request('/sales/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async importSalesCsv(csvContent: string): Promise<{ imported_count: number; message: string }> {
+    return this.request('/sales/import-csv', {
+      method: 'POST',
+      body: JSON.stringify({ csv_content: csvContent }),
+    });
+  }
+
+  // --- Inventory Endpoints ---
+  async getInventoryStatus(): Promise<ProductInventory[]> {
+    return this.getProducts();
+  }
+
+  async adjustStock(productId: string, deltaUnits: number, reason: string): Promise<any> {
+    return this.request('/inventory/adjust', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_id: productId,
+        delta_units: deltaUnits,
+        reason,
+      }),
+    });
+  }
+
+  async getReorderRecommendations(): Promise<ReorderRecommendation[]> {
+    return this.request('/inventory/reorders');
+  }
+
+  async createPurchaseOrder(productId: string, quantity: number): Promise<PurchaseOrderDraft> {
+    return this.request('/inventory/purchase-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_id: productId,
+        quantity,
+      }),
+    });
+  }
+
+  async getPurchaseOrders(): Promise<PurchaseOrderDraft[]> {
+    return this.request('/inventory/purchase-orders');
+  }
+
+  async receivePurchaseOrder(poId: string): Promise<PurchaseOrderDraft> {
+    return this.request(`/inventory/purchase-orders/${poId}/receive`, {
+      method: 'POST',
+    });
+  }
+
+  // --- Transactions & Customers Endpoints ---
+  async getTransactions(params?: {
     type?: string;
+    status?: string;
     search?: string;
-  }): Promise<{ items: Transaction[]; total: number }> => {
-    let items = [...transactions];
+  }): Promise<{ items: Transaction[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    if (params?.type && params.type !== 'ALL') searchParams.append('transaction_type', params.type);
+    if (params?.status && params.status !== 'ALL') searchParams.append('status', params.status);
+    if (params?.search) searchParams.append('search', params.search);
+    const qs = searchParams.toString();
+    const raw = await this.request<any[]>(`/transactions/${qs ? `?${qs}` : ''}`);
 
-    if (filter?.type && filter.type !== 'ALL') {
-      items = items.filter((t) => t.type === filter.type);
-    }
-
-    if (filter?.search) {
-      const q = filter.search.toLowerCase();
-      items = items.filter(
-        (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.customerName?.toLowerCase().includes(q) ||
-          t.category?.toLowerCase().includes(q)
-      );
-    }
+    const items: Transaction[] = raw.map((t) => ({
+      id: t.id,
+      title: t.customer_name ? `Sale to ${t.customer_name}` : t.reference_id || 'PayPal Transaction',
+      date: t.created_at,
+      formattedDate: new Date(t.created_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      type: t.transaction_type as any,
+      amount: t.gross_amount,
+      currency: t.currency,
+      status: t.status as any,
+      source: t.payment_method || 'PAYPAL_WALLET',
+      feeAmount: t.fee_amount,
+      netAmount: t.net_amount,
+      customerName: t.customer_name,
+      paypalOrderId: t.paypal_order_id,
+    }));
 
     return { items, total: items.length };
-  },
+  }
 
-  // Customer Intelligence
-  getCustomerSegments: async (): Promise<CustomerSegment[]> => {
-    return [...INITIAL_CUSTOMER_SEGMENTS];
-  },
+  async getCustomers(params?: { search?: string }): Promise<Customer[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.append('search', params.search);
+    const qs = searchParams.toString();
+    return this.request(`/transactions/customers${qs ? `?${qs}` : ''}`);
+  }
 
-  getLocations: async (): Promise<LocationDistribution[]> => {
-    return [...INITIAL_LOCATIONS];
-  },
+  // --- PayPal Integration Endpoints ---
+  async getPayPalStatus(): Promise<PayPalConnectionStatus> {
+    return this.request('/paypal/status');
+  }
 
-  getCategoryPreferences: async (): Promise<CategoryPreference[]> => {
-    return [...INITIAL_PREFERENCES];
-  },
+  async connectPayPal(data: { client_id: string; client_secret: string; environment?: string }): Promise<PayPalConnectionStatus> {
+    return this.request('/paypal/connect', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
-  // Inventory
-  getInventory: async (): Promise<ProductInventory[]> => {
-    return [...inventory];
-  },
+  async simulateSandboxPayment(data: {
+    amount: number;
+    description: string;
+    customer_email: string;
+    customer_name: string;
+    product_id?: string;
+  }): Promise<any> {
+    return this.request('/paypal/simulate-sandbox-payment', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
-  updateProductStock: async (
-    productId: string,
-    deltaUnits: number
-  ): Promise<ProductInventory> => {
-    const item = inventory.find((p) => p.id === productId);
-    if (!item) throw new Error('Product not found');
-    item.stockOnHand += deltaUnits;
-    if (item.stockOnHand <= 0) {
-      item.status = 'OUT_OF_STOCK';
-      item.stockOnHand = 0;
-    } else if (item.stockOnHand <= item.reorderThreshold) {
-      item.status = 'LOW_STOCK';
-    } else {
-      item.status = 'IN_STOCK';
-    }
-    return { ...item };
-  },
+  // --- Analytics & ML Endpoints ---
+  async getOverview(): Promise<AnalyticsOverview> {
+    return this.request('/analytics/overview');
+  }
 
-  addProduct: async (
-    product: Omit<ProductInventory, 'id' | 'status'>
-  ): Promise<ProductInventory> => {
-    const newProduct: ProductInventory = {
-      ...product,
-      id: `prod_${Date.now()}`,
-      status: product.stockOnHand <= product.reorderThreshold ? 'LOW_STOCK' : 'IN_STOCK',
-    };
-    inventory.push(newProduct);
-    return newProduct;
-  },
+  async getRFMSegments(): Promise<{
+    status: string;
+    message?: string;
+    segments: CustomerSegment[];
+    total_customers_analyzed: number;
+  }> {
+    return this.request('/analytics/rfm-segments');
+  }
 
-  // Forecasting
-  getProductForecast: async (productId: string): Promise<ProductForecast> => {
-    if (productId === INITIAL_FORECAST.productId) {
-      return { ...INITIAL_FORECAST };
-    }
-    const product = inventory.find((p) => p.id === productId);
+  async getCustomerLocations(): Promise<LocationDistribution[]> {
+    return this.request('/analytics/customer-locations');
+  }
+
+  async getCategoryBreakdown(): Promise<CategoryPreference[]> {
+    return this.request('/analytics/categories');
+  }
+
+  async getProductForecast(productId: string): Promise<ProductForecast> {
+    return this.request(`/analytics/forecasts/${productId}`);
+  }
+
+  // --- Marketing Endpoints ---
+  async getCampaigns(): Promise<MarketingCampaignDraft[]> {
+    const raw: any[] = await this.request('/marketing/campaigns');
+    return raw.map((c) => ({
+      id: c.id,
+      name: c.name,
+      target_segment: c.target_segment,
+      discount_percentage: c.discount_percentage,
+      promo_code: c.promo_code,
+      channel: c.channel,
+      headline: c.headline || c.name,
+      message_body: c.message_body,
+      status: c.status,
+      created_at: c.created_at,
+    }));
+  }
+
+  async createCampaign(data: {
+    name: string;
+    target_segment: string;
+    discount_percentage: number;
+    promo_code: string;
+    channel: string;
+    headline?: string;
+    message_body: string;
+  }): Promise<MarketingCampaignDraft> {
+    const raw: any = await this.request('/marketing/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
     return {
-      productId,
-      productName: product?.name || 'Selected Product',
-      growthProjectionPct: 28,
-      forecastPeriod: 'Next 3 months',
-      recommendedUnits: 65,
-      targetOrderDate: 'Within 3 weeks',
-      rationale: `Statistical moving-average forecast predicts increased volume for ${product?.name}. Restock suggested prior to threshold breach.`,
-      points: [
-        { month: 'Oct', actual: 20, projected: 20 },
-        { month: 'Nov', actual: 35, projected: 36 },
-        { month: 'Dec', actual: undefined, projected: 50 },
-        { month: 'Jan', actual: undefined, projected: 45 },
-        { month: 'Feb', actual: undefined, projected: 38 },
-      ],
+      id: raw.id,
+      name: raw.name,
+      target_segment: raw.target_segment,
+      discount_percentage: raw.discount_percentage,
+      promo_code: raw.promo_code,
+      channel: raw.channel,
+      headline: raw.headline || raw.name,
+      message_body: raw.message_body,
+      status: raw.status,
+      created_at: raw.created_at,
     };
-  },
+  }
 
-  confirmReorder: async (
-    productId: string,
-    quantity: number
-  ): Promise<{ orderId: string; status: string; units: number; product: ProductInventory }> => {
-    const product = inventory.find((p) => p.id === productId);
-    if (!product) throw new Error('Product not found');
-    
-    // Simulate stock incoming replenishment
-    product.stockOnHand += quantity;
-    product.status = 'IN_STOCK';
-
-    // Record an outgoing transaction for supplier payment
-    const totalCost = product.unitCost * quantity;
-    const newTx: Transaction = {
-      id: `tx_reorder_${Date.now()}`,
-      title: `${product.supplierName} (Restock)`,
-      date: new Date().toISOString(),
-      formattedDate: 'Just now',
-      type: 'PAYMENT',
-      amount: -totalCost,
-      currency: 'USD',
-      status: 'COMPLETED',
-      source: 'CARD',
-      category: 'Inventory Restock',
-      feeAmount: parseFloat((totalCost * 0.029 + 0.30).toFixed(2)),
-      netAmount: -(totalCost + (totalCost * 0.029 + 0.30)),
-    };
-    transactions.unshift(newTx);
-    merchantProfile.totalBalance -= totalCost;
-    merchantProfile.balances.usd -= totalCost;
-
+  // --- AI Agent Endpoints ---
+  async sendAgentMessage(message: string, conversationId?: string): Promise<AgentChatMessage> {
+    const res: any = await this.request('/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        conversation_id: conversationId,
+      }),
+    });
     return {
-      orderId: `PO-${Date.now().toString().slice(-6)}`,
-      status: 'CONFIRMED',
-      units: quantity,
-      product: { ...product },
+      id: res.id || `msg_${Date.now()}`,
+      role: 'assistant',
+      content: res.reply,
+      tool_executions: res.tool_executions,
+      timestamp: new Date().toISOString(),
     };
-  },
+  }
 
-  // Crypto & Rewards
-  getCryptoHoldings: async (): Promise<CryptoHolding[]> => {
-    return [...INITIAL_CRYPTO];
-  },
+  // --- Settings & Audit ---
+  async getAuditLogs(): Promise<any[]> {
+    return this.request('/settings/audit-logs');
+  }
 
-  getRewardsSummary: async (): Promise<RewardsSummary> => {
-    return { ...INITIAL_REWARDS };
-  },
+  async exportData(): Promise<any> {
+    return this.request('/settings/export');
+  }
+}
 
-  redeemRewards: async (points: number, option: string): Promise<number> => {
-    if (points > INITIAL_REWARDS.points) throw new Error('Insufficient points');
-    INITIAL_REWARDS.points -= points;
-    INITIAL_REWARDS.equivalentUsd = parseFloat((INITIAL_REWARDS.points * 0.01).toFixed(2));
-    merchantProfile.balances.rewardsPoints = INITIAL_REWARDS.points;
-    merchantProfile.balances.rewardsValueUsd = INITIAL_REWARDS.equivalentUsd;
-    
-    if (option === 'Cash Back') {
-      const addedCash = points * 0.01;
-      merchantProfile.totalBalance += addedCash;
-      merchantProfile.balances.usd += addedCash;
-    }
-    return INITIAL_REWARDS.points;
-  },
-
-  // Account Health
-  getAccountHealth: async (): Promise<AccountHealthStatus> => {
-    return { ...INITIAL_ACCOUNT_HEALTH };
-  },
-
-  // Campaigns
-  getCampaigns: async (): Promise<MarketingCampaignDraft[]> => {
-    return [...campaigns];
-  },
-
-  createCampaign: async (
-    draft: Omit<MarketingCampaignDraft, 'id' | 'status'>
-  ): Promise<MarketingCampaignDraft> => {
-    const newCampaign: MarketingCampaignDraft = {
-      ...draft,
-      id: `cmp_${Date.now()}`,
-      status: 'ACTIVE',
-    };
-    campaigns.unshift(newCampaign);
-    return newCampaign;
-  },
-};
+export const apiClient = new ApiClient();

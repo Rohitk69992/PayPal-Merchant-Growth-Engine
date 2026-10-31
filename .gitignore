@@ -43,3 +43,12 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Database & SQLite files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Pytest cache
+.pytest_cache/

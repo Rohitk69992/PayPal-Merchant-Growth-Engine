@@ -3,12 +3,11 @@ import {
   X,
   Bot,
   Send,
-  Sparkles,
-  ArrowRight,
   Wrench,
-  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../services/apiClient';
+import { useAuth } from '../../context/AuthContext';
 
 interface AiCopilotDrawerProps {
   isOpen: boolean;
@@ -21,31 +20,24 @@ interface Message {
   id: string;
   sender: 'user' | 'agent';
   text: string;
-  toolCall?: {
-    name: string;
-    params: Record<string, any>;
-    status: 'EXECUTED';
-  };
-  action?: {
-    label: string;
-    route?: string;
-    callbackType?: 'reorder' | 'campaign';
-  };
+  toolExecutions?: {
+    tool_name: string;
+    arguments: Record<string, any>;
+    status: string;
+  }[];
 }
 
 export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
   isOpen,
   onClose,
-  onTriggerReorderModal,
-  onTriggerCampaignModal,
 }) => {
-  const navigate = useNavigate();
+  const { user, currentMerchant } = useAuth();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
       sender: 'agent',
-      text: "Hello Aanya! I am your PayPal Growth Copilot. I analyze your transaction streams, Scikit-learn customer clusters, and time-series demand models to help you grow your business. How can I assist you today?",
+      text: `Hello ${user?.full_name ? user.full_name.split(' ')[0] : 'Partner'}! I am your PayPal Growth Copilot. I can query your persistent store data, evaluate your inventory safety stocks, check your RFM customer segments, and draft marketing strategies. How can I assist you today?`,
     },
   ]);
   const [isThinking, setIsThinking] = useState(false);
@@ -53,12 +45,13 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
   if (!isOpen) return null;
 
   const quickPrompts = [
+    'What is our current merchant revenue and balance overview?',
     'What should I reorder to avoid stockouts?',
-    'Who are my best customers right now?',
-    'Draft a retention campaign for new buyers',
+    'What are my current RFM customer segments?',
+    'Draft a targeted promotional campaign for high-value customers',
   ];
 
-  const handleSend = (queryText?: string) => {
+  const handleSend = async (queryText?: string) => {
     const textToSend = queryText || input;
     if (!textToSend.trim()) return;
 
@@ -72,109 +65,53 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
     setInput('');
     setIsThinking(true);
 
-    setTimeout(() => {
-      let agentReply: Message;
-      const lower = textToSend.toLowerCase();
-
-      if (lower.includes('reorder') || lower.includes('stock') || lower.includes('inventory')) {
-        agentReply = {
-          id: `a_${Date.now()}`,
+    try {
+      const response = await apiClient.sendAgentMessage(textToSend);
+      const agentMsg: Message = {
+        id: response.id,
+        sender: 'agent',
+        text: response.content,
+        toolExecutions: response.tool_executions,
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `err_${Date.now()}`,
           sender: 'agent',
-          toolCall: {
-            name: 'calculate_reorder_recommendation',
-            params: { product_id: 'prod_1', lead_time_days: 14 },
-            status: 'EXECUTED',
-          },
-          text: "Based on Holt-Winters seasonal forecasting, your **Wireless Headphones** demand is projected to surge by **+42%** over the upcoming holiday quarter. With 80 units currently on hand and a 14-day vendor lead time, you face a critical stockout risk by mid-December. I recommend placing a replenishment order of **120 units** within the next 2 weeks.",
-          action: {
-            label: 'Review & Add 120 Units to Order',
-            callbackType: 'reorder',
-          },
-        };
-      } else if (lower.includes('customer') || lower.includes('segment') || lower.includes('best')) {
-        agentReply = {
-          id: `a_${Date.now()}`,
-          sender: 'agent',
-          toolCall: {
-            name: 'get_customer_segments',
-            params: { metric: 'RFM_KMEANS' },
-            status: 'EXECUTED',
-          },
-          text: "Your RFM analysis reveals 4 distinct customer cohorts: **VIPs (10%)** generate an average spend of **$680.00**, while **New Customers (42%)** represent your largest immediate growth opportunity with an average spend of **$62.50**. Geographic clustering shows **Mumbai (32%)** and **Bengaluru (24%)** are your top volume hubs.",
-          action: {
-            label: 'Explore AI Marketing Insights',
-            route: '/marketing',
-          },
-        };
-      } else if (lower.includes('campaign') || lower.includes('retention') || lower.includes('draft')) {
-        agentReply = {
-          id: `a_${Date.now()}`,
-          sender: 'agent',
-          toolCall: {
-            name: 'generate_campaign_draft',
-            params: { target_segment: 'New Customers', incentive: '15% Off' },
-            status: 'EXECUTED',
-          },
-          text: "I have prepared a targeted retention draft for your **378 New Customers**: Headline: *'Unlock 15% Off Your Next Audio Upgrade'*. Expected conversion rate is **6.8%**, projected to generate an incremental **$1,600+** in PayPal GMV.",
-          action: {
-            label: 'Inspect & Schedule Campaign',
-            callbackType: 'campaign',
-          },
-        };
-      } else {
-        agentReply = {
-          id: `a_${Date.now()}`,
-          sender: 'agent',
-          toolCall: {
-            name: 'get_merchant_overview',
-            params: { merchant_id: 'm_1001' },
-            status: 'EXECUTED',
-          },
-          text: "Your PayPal merchant balance stands at **$12,580.32** (+12% 30-day growth). All account systems and PayPal payment rails are fully secure with 0 dispute flags. Would you like me to analyze product demand or draft a marketing campaign?",
-        };
-      }
-
-      setMessages((prev) => [...prev, agentReply]);
+          text: `Service Notice: ${err.message || 'Unable to connect to AI Agent. Please verify your backend connection.'}`,
+        },
+      ]);
+    } finally {
       setIsThinking(false);
-    }, 800);
-  };
-
-  const handleActionClick = (action: Message['action']) => {
-    if (!action) return;
-    if (action.callbackType === 'reorder' && onTriggerReorderModal) {
-      onClose();
-      onTriggerReorderModal();
-    } else if (action.callbackType === 'campaign' && onTriggerCampaignModal) {
-      onClose();
-      onTriggerCampaignModal();
-    } else if (action.route) {
-      onClose();
-      navigate(action.route);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl border-l border-slate-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-900 to-indigo-900 text-white">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end">
+      <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col border-l border-slate-200">
+        {/* Drawer Header */}
+        <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-blue-200" />
+            <div className="w-8 h-8 rounded-xl bg-blue-500/30 flex items-center justify-center text-blue-200 border border-blue-400/30">
+              <Bot className="w-5 h-5 text-blue-300" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-sm tracking-tight">PayPal AI Copilot</h3>
-                <span className="px-1.5 py-0.2 bg-blue-400/20 text-blue-200 text-[9px] font-extrabold rounded-md uppercase">
-                  Agentic
+              <h3 className="font-extrabold text-sm tracking-tight flex items-center gap-1.5">
+                <span>PayPal AI Copilot</span>
+                <span className="px-1.5 py-0.2 text-[9px] bg-emerald-500/80 text-white rounded font-bold uppercase">
+                  Connected
                 </span>
-              </div>
-              <p className="text-[10px] text-blue-200/80">Controlled Backend Function Calling</p>
+              </h3>
+              <p className="text-[11px] text-blue-200/80">
+                {currentMerchant?.business_name || 'Merchant Context'}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-blue-200 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -187,63 +124,66 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
               key={m.id}
               className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
             >
-              {/* Tool Execution Tag */}
-              {m.toolCall && (
-                <div className="mb-1.5 flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-[11px] font-mono text-slate-600 border border-slate-200">
-                  <Wrench className="w-3 h-3 text-blue-600" />
-                  <span>Executed: {m.toolCall.name}()</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
-                </div>
-              )}
-
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                className={`max-w-[85%] rounded-2xl p-3.5 text-xs ${
                   m.sender === 'user'
-                    ? 'bg-[#0070e0] text-white rounded-br-xs'
+                    ? 'bg-blue-600 text-white rounded-br-xs'
                     : 'bg-slate-100 text-slate-800 rounded-bl-xs border border-slate-200/70'
                 }`}
               >
-                <div dangerouslySetInnerHTML={{ __html: m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-
-                {m.action && (
-                  <button
-                    onClick={() => handleActionClick(m.action)}
-                    className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0070e0] hover:bg-[#005ea6] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>{m.action.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                {/* Agent Tool Execution Pill if agent invoked tools */}
+                {m.toolExecutions && m.toolExecutions.length > 0 && (
+                  <div className="mb-2.5 space-y-1.5">
+                    {m.toolExecutions.map((tool, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2 rounded-xl bg-white/90 border border-slate-200 flex items-center justify-between gap-2 text-[10px] text-slate-700 font-mono shadow-2xs"
+                      >
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Wrench className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span className="font-bold text-blue-900 truncate">
+                            {tool.tool_name}
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
+                          {tool.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
+
+                <p className="whitespace-pre-line leading-relaxed">{m.text}</p>
               </div>
             </div>
           ))}
 
+          {/* Thinking Indicator */}
           {isThinking && (
-            <div className="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100 max-w-[70%]">
-              <Sparkles className="w-4 h-4 text-blue-600 animate-spin" />
-              <span className="text-xs text-slate-500 font-medium">Orchestrating tools & ML models...</span>
+            <div className="flex items-start">
+              <div className="bg-slate-100 rounded-2xl rounded-bl-xs p-3 text-xs text-slate-500 flex items-center gap-2 border border-slate-200/70">
+                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <span>Evaluating merchant models & tools...</span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Suggested Queries */}
-        <div className="p-3 bg-slate-50 border-t border-slate-100">
-          <p className="text-[10px] uppercase font-bold text-slate-400 mb-1.5">Suggested Prompts</p>
-          <div className="flex flex-wrap gap-1.5">
-            {quickPrompts.map((q, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSend(q)}
-                className="text-[11px] px-2.5 py-1 bg-white border border-slate-200 hover:border-blue-400 text-slate-600 hover:text-blue-600 rounded-lg transition-colors text-left"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+        {/* Quick Suggestion Chips */}
+        <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 flex gap-1.5 overflow-x-auto no-scrollbar">
+          {quickPrompts.map((q) => (
+            <button
+              key={q}
+              onClick={() => handleSend(q)}
+              className="text-[10px] font-semibold text-slate-700 bg-white hover:bg-blue-50 hover:text-blue-700 px-2.5 py-1.5 rounded-lg border border-slate-200 shrink-0 transition-colors cursor-pointer"
+            >
+              {q}
+            </button>
+          ))}
         </div>
 
-        {/* Input Bar */}
-        <div className="p-3 border-t border-slate-200 bg-white">
+        {/* Text Input Box */}
+        <div className="p-3 bg-white border-t border-slate-200">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -255,20 +195,17 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about inventory, customers, or campaigns..."
-              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Ask your PayPal Growth Copilot..."
+              className="flex-1 bg-slate-100 text-xs px-3.5 py-2.5 rounded-xl border border-transparent focus:border-blue-400 focus:bg-white focus:outline-none transition-all"
             />
             <button
               type="submit"
-              disabled={!input.trim()}
-              className="p-2.5 rounded-xl bg-[#0070e0] hover:bg-[#005ea6] text-white disabled:opacity-40 transition-colors cursor-pointer"
+              disabled={!input.trim() || isThinking}
+              className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 disabled:opacity-40 transition-colors cursor-pointer shadow-xs"
             >
               <Send className="w-4 h-4" />
             </button>
           </form>
-          <p className="mt-1.5 text-[9px] text-center text-slate-400">
-            PayPal Agentic AI Engine — Responses validated with real ML models.
-          </p>
         </div>
       </div>
     </div>

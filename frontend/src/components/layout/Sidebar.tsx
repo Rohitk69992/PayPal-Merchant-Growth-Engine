@@ -6,11 +6,11 @@ import {
   Target,
   Package,
   Receipt,
-  Bitcoin,
-  Gift,
-  ShieldCheck,
-  ChevronRight,
+  Boxes,
+  CreditCard,
+  Settings,
   Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,15 +21,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const primaryNav = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Growth Engine', path: '/grow', icon: TrendingUp, badge: 'AI' },
-    { name: 'Marketing Insights', path: '/marketing', icon: Target },
+    { name: 'Product Catalog', path: '/products', icon: Boxes },
+    { name: 'Sales Entry', path: '/sales', icon: TrendingUp },
     { name: 'Inventory Assistant', path: '/inventory', icon: Package },
+    { name: 'Marketing & RFM', path: '/marketing', icon: Target },
     { name: 'Transactions', path: '/transactions', icon: Receipt },
   ];
 
-  const supportingNav = [
-    { name: 'Crypto', path: '/crypto', icon: Bitcoin },
-    { name: 'PayPal Rewards', path: '/rewards', icon: Gift },
-    { name: 'Account Health', path: '/account-health', icon: ShieldCheck },
+  const secondaryNav = [
+    { name: 'PayPal Integration', path: '/paypal', icon: CreditCard, badge: 'API' },
+    { name: 'Settings & Audit', path: '/settings', icon: Settings },
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -67,13 +68,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           </nav>
         </div>
 
-        {/* Supporting Services */}
+        {/* Integration & Settings */}
         <div>
           <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Fintech Services
+            Platform & Developer
           </p>
           <nav className="space-y-1">
-            {supportingNav.map((item) => {
+            {secondaryNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink key={item.path} to={item.path} className={linkClass}>
@@ -81,6 +82,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.name}</span>
                   </div>
+                  {item.badge && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-emerald-600 text-white rounded-md tracking-wider">
+                      {item.badge}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
@@ -95,13 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <span className="text-xs font-bold tracking-tight">PayPal AI Partner</span>
         </div>
         <p className="text-[11px] text-blue-200 leading-snug">
-          Transaction stream continuously calibrated with Scikit-learn RFM models.
+          Transaction stream continuously calibrated with Scikit-learn RFM and Holt-Winters models.
         </p>
         <NavLink
-          to="/account-health"
+          to="/settings"
           className="mt-2.5 flex items-center justify-between text-[11px] font-semibold text-white/90 hover:text-white pt-2 border-t border-blue-800/80"
         >
-          <span>View Account Standing</span>
+          <span>Audit Ledger & Export</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </NavLink>
       </div>

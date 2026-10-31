@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Sparkles, Send, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
 interface CampaignModalProps {
@@ -18,27 +18,28 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
   onSuccess,
 }) => {
   const [segment, setSegment] = useState(defaultSegment);
-  const [headline, setHeadline] = useState('Unlock 15% Off Your Next Audio Upgrade');
-  const [emailSubject, setEmailSubject] = useState('A gift for you: 15% off your next PayPal order');
-  const [discountCode, setDiscountCode] = useState('WELCOME15PAYPAL');
+  const [headline, setHeadline] = useState('Special Offer for Valued Customers');
+  const [emailSubject, setEmailSubject] = useState('A gift for you: Special discount on your next order');
+  const [discountCode, setDiscountCode] = useState('GROWTH2026');
   const [discountPct, setDiscountPct] = useState(15);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const segmentOptions = ['New Customers', 'Returning', 'Loyal', 'VIP'];
+  const segmentOptions = ['High-Value Champions', 'Loyal Customers', 'Promising Growth', 'At-Risk / Needs Attention'];
 
   const handleCreate = async () => {
     setIsSubmitting(true);
+    setError(null);
     try {
       await apiClient.createCampaign({
-        targetSegment: segment,
+        name: headline,
+        target_segment: segment,
+        discount_percentage: discountPct,
+        promo_code: discountCode,
+        channel: 'PAYPAL_OFFERS',
         headline,
-        emailSubject,
-        bodyCopy: `Special offer for ${segment}: Use code ${discountCode} at PayPal checkout for ${discountPct}% off.`,
-        discountCode,
-        discountPct,
-        estimatedReach: segment === 'New Customers' ? 378 : segment === 'Returning' ? 252 : 90,
-        expectedConversionRatePct: 7.2,
+        message_body: emailSubject,
       });
       setIsDone(true);
       setTimeout(() => {
@@ -46,9 +47,9 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
         setIsSubmitting(false);
         onClose();
         if (onSuccess) onSuccess();
-      }, 1400);
-    } catch (err) {
-      console.error(err);
+      }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create campaign.');
       setIsSubmitting(false);
     }
   };
@@ -68,11 +69,18 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
           </div>
           <h4 className="text-lg font-bold text-slate-900">Campaign Activated!</h4>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            Targeted promotion scheduled for dispatch. Discount code {discountCode} created in PayPal offers.
+            Targeted promotion recorded in marketing ledger. Promo code {discountCode} active.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 text-red-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Target Segment Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
@@ -99,7 +107,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
           {/* Campaign Headline */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-              Campaign Headline (AI-Drafted)
+              Campaign Title / Headline
             </label>
             <input
               type="text"
@@ -112,7 +120,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
           {/* Email Subject Line */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-              Email Subject Line
+              Email / Notification Copy
             </label>
             <input
               type="text"
@@ -126,7 +134,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                Discount Code
+                Promo Code
               </label>
               <input
                 type="text"
@@ -148,17 +156,6 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                 className="w-full text-xs font-bold text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
               />
             </div>
-          </div>
-
-          {/* AI Reach Projection */}
-          <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl flex items-center justify-between text-xs text-blue-900">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              <span>Projected Reach: <strong>{segment === 'New Customers' ? 378 : 252} shoppers</strong></span>
-            </div>
-            <span className="font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md text-[11px]">
-              Est. +$1,650 GMV
-            </span>
           </div>
 
           {/* Actions */}

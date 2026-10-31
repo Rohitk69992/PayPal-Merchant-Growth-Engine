@@ -1,20 +1,28 @@
 import React from 'react';
-import { Bot, ShieldCheck, Smartphone, Monitor } from 'lucide-react';
+import { Bot, ShieldCheck } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onToggleAiDrawer: () => void;
   isAiDrawerOpen: boolean;
-  isMobileDeviceView: boolean;
-  onToggleDeviceView: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleAiDrawer,
   isAiDrawerOpen,
-  isMobileDeviceView,
-  onToggleDeviceView,
 }) => {
+  const { user, currentMerchant } = useAuth();
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'ME';
+
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -38,26 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Responsive Device View Toggle for Reviewers */}
-          <button
-            onClick={onToggleDeviceView}
-            title={isMobileDeviceView ? "Switch to Full Desktop View" : "Switch to Mobile Device Wireframe View"}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-          >
-            {isMobileDeviceView ? (
-              <>
-                <Monitor className="w-3.5 h-3.5 text-blue-600" />
-                <span className="hidden md:inline">Full Desktop</span>
-              </>
-            ) : (
-              <>
-                <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                <span className="hidden md:inline">Mobile Wireframe</span>
-              </>
-            )}
-          </button>
-
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* AI Copilot Quick Launcher Button */}
           <button
             onClick={onToggleAiDrawer}
@@ -72,17 +61,19 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* User Profile Badge */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-              alt="Aanya"
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-100"
-            />
-            <div className="hidden lg:block text-left">
-              <p className="text-xs font-bold text-slate-900 leading-tight">Aanya Sharma</p>
+          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shadow-xs">
+              {initials}
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-xs font-bold text-slate-900 leading-tight">
+                {user?.full_name || 'Partner'}
+              </p>
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span>Verified Merchant</span>
+                <span className="truncate max-w-[120px]">
+                  {currentMerchant?.business_name || 'Verified Merchant'}
+                </span>
               </div>
             </div>
           </div>
