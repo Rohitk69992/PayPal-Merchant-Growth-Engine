@@ -1,0 +1,14 @@
+# Project Scenario: AI-Powered Merchant Growth Engine
+
+## Idea Overview
+This project scenario focuses on transforming PayPal into an essential growth partner for merchants (small businesses and startups) by embedding AI into their business operations, thereby increasing transaction volume and fostering loyalty.
+
+## Core Features:
+
+### 1. AI-Powered Marketing
+*   PayPal uses transaction data to provide AI tools that help merchants identify who their best customers are, where they are coming from, and what they prefer.
+*   This enables merchants to target new customers more effectively and increase sales.
+
+### 2. AI-Inventory Management
+*   AI analyzes seasonal trends and sales history to predict future demand for specific products.
+*   It provides actionable suggestions to merchants on when and how much stock to order, reducing overhead and preventing stock shortages.

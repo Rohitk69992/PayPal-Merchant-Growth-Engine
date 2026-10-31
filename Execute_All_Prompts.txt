@@ -1,0 +1,11 @@
+First, use this prompt to analyze your data:
+
+"I've compiled a text file containing user feedback, professional reviews, and various links related to PayPal. Analyze all this data comprehensively. Identify the top 3 weaknesses competitors could exploit and the top 3 strengths PayPal should double down on. Based on this, brainstorm 5 innovative features (integrating AI and PayPal's core systems) that would address user pain points and disrupt the current online payment space."
+
+Next, feed the same data to this prompt:
+
+"Review the provided text file containing user opinions, criticisms, and suggestions for PayPal. Synthesize this data to define the user profile most dissatisfied with the current options. Then, propose a groundbreaking conceptual product (combining AI, Subscriptions, and International Payments) that specifically fixes their biggest problems and creates a delightful payment experience."
+
+Finally, pass the data through this prompt:
+
+"Using the text file I've provided with mixed reviews and links about PayPal, conduct a SWOT analysis (Strengths, Weaknesses, Opportunities, Threats). Use this analysis to generate 4 distinct, actionable themes for a hackathon project. Each idea must solve a real complaint mentioned in the data, utilize AI effectively, and leverage PayPal’s existing API capabilities."
