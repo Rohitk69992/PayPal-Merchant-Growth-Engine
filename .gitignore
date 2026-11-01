@@ -52,3 +52,6 @@ Thumbs.db
 
 # Pytest cache
 .pytest_cache/
+
+# Internal Architecture Documentation (Local-Only)
+README_BUILD_FROM_SCRATCH.md
