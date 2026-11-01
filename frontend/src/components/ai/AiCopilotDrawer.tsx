@@ -3,11 +3,11 @@ import {
   X,
   Bot,
   Send,
-  Wrench,
   Loader2,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { useAuth } from '../../context/AuthContext';
+import { MarkdownView } from '../common/MarkdownView';
 
 interface AiCopilotDrawerProps {
   isOpen: boolean;
@@ -42,6 +42,7 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
   ]);
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const msgCounterRef = useRef(1);
 
   useEffect(() => {
     if (isOpen) {
@@ -70,8 +71,11 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
     const textToSend = queryText || input;
     if (!textToSend.trim()) return;
 
+    msgCounterRef.current += 1;
+    const currentId = msgCounterRef.current;
+
     const userMsg: Message = {
-      id: `u_${Date.now()}`,
+      id: `u_${currentId}`,
       sender: 'user',
       text: textToSend,
     };
@@ -82,20 +86,26 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
 
     try {
       const response = await apiClient.sendAgentMessage(textToSend);
+      msgCounterRef.current += 1;
       const agentMsg: Message = {
-        id: response.id || `a_${Date.now()}`,
+        id: response.id || `a_${msgCounterRef.current}`,
         sender: 'agent',
         text: response.content,
         toolExecutions: response.tool_executions,
       };
       setMessages((prev) => [...prev, agentMsg]);
     } catch (err: any) {
+      msgCounterRef.current += 1;
       setMessages((prev) => [
         ...prev,
         {
-          id: `err_${Date.now()}`,
+          id: `err_${msgCounterRef.current}`,
           sender: 'agent',
-          text: `Service Notice: ${err.message || 'Unable to connect to AI Agent. Please verify your backend server.'}`,
+          text: `Service Notice: ${
+            err.message && !err.message.includes('object') && !err.message.includes('stack')
+              ? err.message
+              : 'Unable to connect to AI Growth Copilot. Please verify your connection and try again.'
+          }`,
         },
       ]);
     } finally {
@@ -154,29 +164,10 @@ export const AiCopilotDrawer: React.FC<AiCopilotDrawerProps> = ({
                     : 'bg-white text-[#172B45] border border-[#D9E2EC] shadow-2xs'
                 }`}
               >
-                {/* Agent Tool Execution Pill if agent invoked tools */}
-                {m.toolExecutions && m.toolExecutions.length > 0 && (
-                  <div className="mb-2 space-y-1">
-                    {m.toolExecutions.map((tool, idx) => (
-                      <div
-                        key={idx}
-                        className="p-1.5 rounded-lg bg-[#F1F5F9] border border-[#D9E2EC] flex items-center justify-between gap-2 text-[10px] text-[#334155] font-mono"
-                      >
-                        <div className="flex items-center gap-1.5 truncate">
-                          <Wrench className="w-3 h-3 text-[#4779A8] shrink-0" />
-                          <span className="font-bold text-[#1E3A5F] truncate">
-                            {tool.tool_name}
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-[#16A085] font-bold bg-[#E8F6F3] px-1.5 py-0.2 rounded border border-[#A3E4D7] shrink-0">
-                          {tool.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <p className="whitespace-pre-line">{m.text}</p>
+                <MarkdownView
+                  content={m.text}
+                  variant={m.sender === 'user' ? 'user' : 'assistant'}
+                />
               </div>
             </div>
           ))}

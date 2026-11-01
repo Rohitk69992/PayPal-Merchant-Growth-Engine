@@ -166,11 +166,31 @@ export const SettingsPage: React.FC = () => {
                 <p className="font-semibold text-[#172B45] font-mono mt-0.5">{user?.email}</p>
               </div>
               <div>
-                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Session Status</span>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Account Status</span>
                 <p className="mt-1">
-                  <Badge variant="success" size="sm">
-                    Verified JWT Session
+                  <Badge variant={user?.is_active ? 'success' : 'danger'} size="sm">
+                    {user?.is_active ? 'Active' : 'Inactive'}
                   </Badge>
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Email Verification</span>
+                <p className="mt-1">
+                  <Badge variant={user?.is_verified ? 'success' : 'neutral'} size="sm">
+                    {user?.is_verified ? 'Verified' : 'Pending Verification'}
+                  </Badge>
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Member Since</span>
+                <p className="font-semibold text-[#172B45] mt-0.5">
+                  {user?.created_at
+                    ? new Date(user.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'Active Member'}
                 </p>
               </div>
             </div>

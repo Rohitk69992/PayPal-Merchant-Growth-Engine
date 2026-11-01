@@ -92,7 +92,7 @@ describe('Frontend Google OAuth & Routing Architecture', () => {
     ];
 
     // Simulate AuthContext googleLogin method
-    const handleGoogleLogin = async (idToken) => {
+    const handleGoogleLogin = async (_idToken) => {
       // 1. Send ID token to backend
       const res = mockGoogleResponse;
       // 2. Persist backend-issued access token
@@ -131,7 +131,7 @@ describe('Frontend Google OAuth & Routing Architecture', () => {
 
     const mockMerchants = []; // No merchants
 
-    const handleGoogleLogin = async (idToken) => {
+    const handleGoogleLogin = async (_idToken) => {
       const res = mockGoogleResponse;
       localStorage.setItem('token', res.access_token);
       const userMerchants = mockMerchants;
@@ -156,7 +156,7 @@ describe('Frontend Google OAuth & Routing Architecture', () => {
     localStorage.setItem('token', 'stale_token');
     localStorage.setItem('current_merchant_id', 'stale_merchant');
 
-    const handleGoogleLoginFail = async (idToken) => {
+    const handleGoogleLoginFail = async (_idToken) => {
       try {
         throw new Error('Google token verification failed: Invalid Google token issuer.');
       } catch (err) {
