@@ -85,6 +85,13 @@ class ApiClient {
     });
   }
 
+  async googleLogin(idToken: string): Promise<{ access_token: string; user: User; session_id?: string }> {
+    return this.request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ id_token: idToken }),
+    });
+  }
+
   async logout(): Promise<void> {
     try {
       await this.request('/auth/logout', { method: 'POST' });

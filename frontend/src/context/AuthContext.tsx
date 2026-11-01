@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<{ user: User; hasMerchant: boolean }>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => void;
   createMerchant: (data: {
@@ -108,6 +109,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const googleLogin = async (idToken: string): Promise<{ user: User; hasMerchant: boolean }> => {
+    setIsLoading(true);
+    try {
+      const res = await apiClient.googleLogin(idToken);
+      localStorage.setItem('token', res.access_token);
+      setToken(res.access_token);
+      setUser(res.user);
+
+      const userMerchants = await apiClient.getMyMerchants();
+      setMerchants(userMerchants);
+      if (userMerchants.length > 0) {
+        const savedMerchantId = localStorage.getItem('current_merchant_id');
+        const found = userMerchants.find((m) => m.id === savedMerchantId);
+        const selected = found || userMerchants[0];
+        setCurrentMerchant(selected);
+        localStorage.setItem('current_merchant_id', selected.id);
+        return { user: res.user, hasMerchant: true };
+      } else {
+        setCurrentMerchant(null);
+        localStorage.removeItem('current_merchant_id');
+        return { user: res.user, hasMerchant: false };
+      }
+    } catch (err) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('current_merchant_id');
+      setToken(null);
+      setUser(null);
+      setMerchants([]);
+      setCurrentMerchant(null);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (email: string, password: string, fullName: string) => {
     setIsLoading(true);
     try {
@@ -168,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token && !!user,
         isLoading,
         login,
+        googleLogin,
         register,
         logout,
         createMerchant,

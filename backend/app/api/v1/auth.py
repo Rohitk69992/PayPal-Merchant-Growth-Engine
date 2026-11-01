@@ -2,6 +2,7 @@ from typing import Optional, List, Tuple
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.core.database import get_db
 from backend.app.core.config import settings
@@ -287,7 +288,7 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Google OAuth is not configured on this server. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env."
+            detail="Google OAuth is not configured on this server. Please configure GOOGLE_CLIENT_ID in backend/.env."
         )
 
     try:
@@ -307,17 +308,33 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
         )
 
     google_sub = id_info.get("sub")
-    google_email = id_info.get("email", "").lower()
+    google_email = (id_info.get("email") or "").strip().lower()
     email_verified = id_info.get("email_verified", False)
-    user_name = id_info.get("name") or google_email.split("@")[0]
+    user_name = (id_info.get("name") or "").strip() or google_email.split("@")[0]
 
     if not google_sub or not google_email:
+        record_auth_event(
+            db,
+            event_type="GOOGLE_LOGIN_FAILURE",
+            email="incomplete_payload",
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incomplete identity payload from Google."
         )
 
     if not email_verified:
+        record_auth_event(
+            db,
+            event_type="GOOGLE_LOGIN_FAILURE_UNVERIFIED_EMAIL",
+            email=google_email,
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Google email address is not verified by Google."
@@ -337,6 +354,19 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
         # Check if user already exists with this email
         user = db.query(User).filter(User.email == google_email).first()
         if user:
+            # Check if user is active BEFORE linking
+            if not user.is_active:
+                record_auth_event(
+                    db,
+                    event_type="LOGIN_FAILURE_INACTIVE",
+                    email=google_email,
+                    user_id=user.id,
+                    ip_address=client_ip,
+                    user_agent=user_agent,
+                )
+                db.commit()
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated.")
+
             # Link identity to existing account safely
             identity = AuthIdentity(
                 user_id=user.id,
@@ -346,6 +376,19 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
             )
             db.add(identity)
             user.is_verified = True
+            try:
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                # Identity or user may have been concurrently created
+                identity = db.query(AuthIdentity).filter(
+                    AuthIdentity.provider == "google",
+                    AuthIdentity.provider_subject_id == google_sub
+                ).first()
+                if identity:
+                    user = db.query(User).filter(User.id == identity.user_id).first()
+                else:
+                    raise
         else:
             # Create new user
             user = User(
@@ -356,22 +399,45 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
                 is_verified=True,
             )
             db.add(user)
-            db.flush()
+            try:
+                db.flush()
+                identity = AuthIdentity(
+                    user_id=user.id,
+                    provider="google",
+                    provider_subject_id=google_sub,
+                    email=google_email
+                )
+                db.add(identity)
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                # Handle race condition where user or identity was committed concurrently
+                identity = db.query(AuthIdentity).filter(
+                    AuthIdentity.provider == "google",
+                    AuthIdentity.provider_subject_id == google_sub
+                ).first()
+                if identity:
+                    user = db.query(User).filter(User.id == identity.user_id).first()
+                else:
+                    user = db.query(User).filter(User.email == google_email).first()
+                    if user:
+                        identity = AuthIdentity(
+                            user_id=user.id,
+                            provider="google",
+                            provider_subject_id=google_sub,
+                            email=google_email
+                        )
+                        db.add(identity)
+                        db.flush()
+                    else:
+                        raise
 
-            identity = AuthIdentity(
-                user_id=user.id,
-                provider="google",
-                provider_subject_id=google_sub,
-                email=google_email
-            )
-            db.add(identity)
-
-    if not user.is_active:
+    if not user or not user.is_active:
         record_auth_event(
             db,
             event_type="LOGIN_FAILURE_INACTIVE",
             email=google_email,
-            user_id=user.id,
+            user_id=user.id if user else None,
             ip_address=client_ip,
             user_agent=user_agent,
         )
@@ -390,6 +456,7 @@ def google_auth(login_in: GoogleLoginRequest, request: Request, db: Session = De
         user_agent=user_agent,
     )
     db.commit()
+    db.refresh(user)
 
     has_merchant = db.query(MerchantMember).filter(MerchantMember.user_id == user.id).first() is not None
 
