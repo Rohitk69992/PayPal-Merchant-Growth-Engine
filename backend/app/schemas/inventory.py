@@ -1,11 +1,25 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class StockAdjustment(BaseModel):
     product_id: str
     adjustment_units: int = Field(description="Can be positive (restock) or negative (shrinkage/damage)")
     reason: str = Field(default="Manual stock adjustment", max_length=255)
+
+class InventoryMovementResponse(BaseModel):
+    id: str
+    product_id: str
+    product_name: Optional[str] = None
+    sku: Optional[str] = None
+    movement_type: str  # INITIAL, SALE, RESTOCK, ADJUSTMENT, RETURN
+    quantity: int
+    stock_after: int
+    reason: Optional[str] = None
+    reference_id: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 class PurchaseOrderCreate(BaseModel):
     product_id: str
@@ -25,8 +39,7 @@ class PurchaseOrderResponse(BaseModel):
     created_at: datetime
     received_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ReorderRecommendationResponse(BaseModel):
     id: str
@@ -42,5 +55,4 @@ class ReorderRecommendationResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

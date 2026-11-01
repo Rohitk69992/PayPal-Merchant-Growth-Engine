@@ -49,6 +49,8 @@ def list_audit_logs(
             "action": l.action,
             "resource_type": l.resource_type,
             "resource_id": l.resource_id,
+            "entity_type": l.resource_type,
+            "entity_id": l.resource_id,
             "details": l.details_json,
             "created_at": l.created_at
         }
@@ -56,6 +58,7 @@ def list_audit_logs(
     ]
 
 @router.get("/export-data")
+@router.get("/export")
 def export_merchant_data(
     current_merchant: MerchantProfile = Depends(get_current_merchant),
     db: Session = Depends(get_db)
@@ -77,7 +80,12 @@ def export_merchant_data(
             "created_at": current_merchant.created_at.isoformat()
         },
         "products": [
-            {"sku": p.sku, "name": p.name, "current_stock": p.current_stock, "selling_price": p.selling_price}
+            {
+                "sku": p.sku,
+                "name": p.name,
+                "current_stock": p.current_stock,
+                "selling_price": float(p.selling_price) if p.selling_price is not None else 0.0
+            }
             for p in products
         ],
         "sales_count": len(sales),

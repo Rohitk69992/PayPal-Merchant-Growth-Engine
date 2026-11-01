@@ -2,8 +2,9 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from backend.app.core.config import settings
-from backend.app.core.database import engine, Base
+from backend.app.core.database import engine
 import backend.app.models  # Ensures all models are registered
 
 # Import API Routers
@@ -21,8 +22,12 @@ from backend.app.api.v1.settings import router as settings_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables on startup if not already created
-    Base.metadata.create_all(bind=engine)
+    # Verify database connectivity and schema readiness on startup
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        print(f"Warning: Database startup connectivity check: {e}")
     yield
 
 app = FastAPI(
@@ -57,11 +62,18 @@ app.include_router(settings_router, prefix=api_prefix)
 
 @app.get("/health")
 def health_check():
+    db_status = "CONNECTED"
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"ERROR: {str(e)}"
+
     return {
-        "status": "HEALTHY",
+        "status": "HEALTHY" if db_status == "CONNECTED" else "UNHEALTHY",
         "app": settings.APP_NAME,
         "environment": settings.APP_ENV,
-        "database": "CONNECTED"
+        "database": db_status
     }
 
 @app.get("/")

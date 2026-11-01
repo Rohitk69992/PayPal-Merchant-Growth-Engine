@@ -12,7 +12,7 @@ class AgentConversation(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     merchant_id = Column(String(36), ForeignKey("merchant_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), default="Merchant Strategy Session", nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 class AgentMessage(Base):
     __tablename__ = "agent_messages"
@@ -22,7 +22,7 @@ class AgentMessage(Base):
     sender = Column(String(20), nullable=False)  # user | agent
     message_text = Column(Text, nullable=False)
     tool_calls_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 class AgentToolExecution(Base):
     __tablename__ = "agent_tool_executions"
@@ -35,4 +35,4 @@ class AgentToolExecution(Base):
     result_json = Column(Text, nullable=True)
     status = Column(String(20), default="SUCCESS", nullable=False)  # SUCCESS | ERROR
     execution_time_ms = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

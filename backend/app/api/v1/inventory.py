@@ -1,14 +1,16 @@
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
-from backend.app.core.dependencies import get_current_merchant
-from backend.app.models.user import MerchantProfile
+from backend.app.core.dependencies import get_current_merchant, get_optional_current_user
+from backend.app.models.user import MerchantProfile, User
 from backend.app.models.inventory import Product, InventoryMovement, PurchaseOrderDraft, ReorderRecommendation
+from backend.app.models.audit import AuditLog
 from backend.app.schemas.inventory import (
     StockAdjustment,
+    InventoryMovementResponse,
     PurchaseOrderCreate,
     PurchaseOrderResponse,
     ReorderRecommendationResponse
@@ -49,8 +51,8 @@ def get_inventory_status(
             "current_stock": p.current_stock,
             "safety_stock": p.safety_stock,
             "lead_time_days": p.lead_time_days,
-            "unit_cost": p.unit_cost,
-            "unit_price": p.selling_price,
+            "unit_cost": float(p.unit_cost),
+            "unit_price": float(p.selling_price),
             "supplier_name": p.supplier_name,
             "status": st
         })
@@ -68,6 +70,7 @@ def get_inventory_status(
 def adjust_stock(
     adj: StockAdjustment,
     current_merchant: MerchantProfile = Depends(get_current_merchant),
+    current_user: Optional[User] = Depends(get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     product = db.query(Product).filter(
@@ -77,25 +80,79 @@ def adjust_stock(
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
 
-    new_stock = max(0, product.current_stock + adj.adjustment_units)
-    product.current_stock = new_stock
+    resulting_stock = product.current_stock + adj.adjustment_units
+    if resulting_stock < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Adjustment of {adj.adjustment_units} units would result in negative stock ({resulting_stock}). Current stock is {product.current_stock}."
+        )
+
+    previous_stock = product.current_stock
+    product.current_stock = resulting_stock
 
     movement = InventoryMovement(
         merchant_id=current_merchant.id,
         product_id=product.id,
         movement_type="ADJUSTMENT",
         quantity=adj.adjustment_units,
-        stock_after=new_stock,
+        stock_after=resulting_stock,
         reason=adj.reason
     )
     db.add(movement)
+
+    audit = AuditLog(
+        merchant_id=current_merchant.id,
+        user_id=current_user.id if current_user else None,
+        action="STOCK_ADJUSTMENT",
+        resource_type="PRODUCT",
+        resource_id=product.id,
+        details_json=f'{{"previous_stock": {previous_stock}, "change": {adj.adjustment_units}, "resulting_stock": {resulting_stock}, "reason": "{adj.reason}"}}'
+    )
+    db.add(audit)
     db.commit()
 
     return {
-        "message": f"Stock updated to {new_stock} units.",
+        "message": f"Stock updated from {previous_stock} to {resulting_stock} units.",
         "product_id": product.id,
-        "current_stock": new_stock
+        "previous_stock": previous_stock,
+        "current_stock": resulting_stock,
+        "quantity_change": adj.adjustment_units
     }
+
+@router.get("/movements", response_model=List[InventoryMovementResponse])
+def list_inventory_movements(
+    product_id: Optional[str] = None,
+    movement_type: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=500),
+    current_merchant: MerchantProfile = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
+    query = db.query(InventoryMovement, Product).join(
+        Product, InventoryMovement.product_id == Product.id
+    ).filter(InventoryMovement.merchant_id == current_merchant.id)
+
+    if product_id:
+        query = query.filter(InventoryMovement.product_id == product_id)
+    if movement_type and movement_type != "ALL":
+        query = query.filter(InventoryMovement.movement_type == movement_type.upper())
+
+    results = query.order_by(InventoryMovement.created_at.desc()).limit(limit).all()
+
+    return [
+        InventoryMovementResponse(
+            id=m.id,
+            product_id=m.product_id,
+            product_name=p.name,
+            sku=p.sku,
+            movement_type=m.movement_type,
+            quantity=m.quantity,
+            stock_after=m.stock_after,
+            reason=m.reason,
+            reference_id=m.reference_id,
+            created_at=m.created_at
+        )
+        for m, p in results
+    ]
 
 @router.get("/reorders")
 def get_reorder_recommendations(
@@ -163,8 +220,8 @@ def create_purchase_order(
         product_name=product.name,
         sku=product.sku,
         quantity=po.quantity,
-        unit_cost=po.unit_cost,
-        total_amount=po.total_amount,
+        unit_cost=float(po.unit_cost),
+        total_amount=float(po.total_amount),
         supplier_name=po.supplier_name,
         status=po.status,
         created_at=po.created_at,
@@ -189,8 +246,8 @@ def list_purchase_orders(
             product_name=p.name,
             sku=p.sku,
             quantity=po.quantity,
-            unit_cost=po.unit_cost,
-            total_amount=po.total_amount,
+            unit_cost=float(po.unit_cost),
+            total_amount=float(po.total_amount),
             supplier_name=po.supplier_name,
             status=po.status,
             created_at=po.created_at,
@@ -203,6 +260,7 @@ def list_purchase_orders(
 def receive_purchase_order(
     po_id: str,
     current_merchant: MerchantProfile = Depends(get_current_merchant),
+    current_user: Optional[User] = Depends(get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     po = db.query(PurchaseOrderDraft).filter(
@@ -234,6 +292,16 @@ def receive_purchase_order(
         reference_id=po.id
     )
     db.add(movement)
+
+    audit = AuditLog(
+        merchant_id=current_merchant.id,
+        user_id=current_user.id if current_user else None,
+        action="PO_RECEIVED",
+        resource_type="PURCHASE_ORDER",
+        resource_id=po.id,
+        details_json=f'{{"po_id": "{po.id}", "quantity": {po.quantity}, "new_stock": {new_stock}}}'
+    )
+    db.add(audit)
     db.commit()
 
     return {

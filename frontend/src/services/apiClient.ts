@@ -85,6 +85,14 @@ class ApiClient {
     });
   }
 
+  async logout(): Promise<void> {
+    try {
+      await this.request('/auth/logout', { method: 'POST' });
+    } catch {
+      // Best-effort session revocation on backend
+    }
+  }
+
   async getMe(): Promise<User> {
     return this.request('/auth/me');
   }
@@ -117,24 +125,28 @@ class ApiClient {
     if (params?.category) searchParams.append('category', params.category);
     if (params?.search) searchParams.append('search', params.search);
     const qs = searchParams.toString();
-    const raw = await this.request<any[]>(`/products/${qs ? `?${qs}` : ''}`);
+    const raw = await this.request<any[]>(`/products${qs ? `?${qs}` : ''}`);
     
-    return raw.map((p) => ({
-      id: p.id,
-      merchant_id: p.merchant_id,
-      sku: p.sku,
-      name: p.name,
-      category: p.category || 'General',
-      unitCost: p.unit_cost,
-      unitPrice: p.unit_price,
-      stockOnHand: p.stock_on_hand,
-      reorderThreshold: p.reorder_point,
-      safetyStock: p.safety_stock,
-      leadTimeDays: p.lead_time_days,
-      supplierName: p.supplier_name || 'Standard Supplier',
-      status: p.stock_on_hand <= 0 ? 'OUT_OF_STOCK' : p.stock_on_hand <= p.reorder_point ? 'LOW_STOCK' : 'IN_STOCK',
-      created_at: p.created_at,
-    }));
+    return raw.map((p) => {
+      const stock = p.current_stock ?? p.stock_on_hand ?? 0;
+      const reorder = p.safety_stock ?? p.reorder_point ?? 10;
+      return {
+        id: p.id,
+        merchant_id: p.merchant_id,
+        sku: p.sku,
+        name: p.name,
+        category: p.category || 'General',
+        unitCost: Number(p.unit_cost ?? 0),
+        unitPrice: Number(p.selling_price ?? p.unit_price ?? 0),
+        stockOnHand: stock,
+        reorderThreshold: reorder,
+        safetyStock: Number(p.safety_stock ?? 10),
+        leadTimeDays: Number(p.lead_time_days ?? 7),
+        supplierName: p.supplier_name || 'Standard Supplier',
+        status: p.status || (stock <= 0 ? 'OUT_OF_STOCK' : stock <= reorder ? 'LOW_STOCK' : 'IN_STOCK'),
+        created_at: p.created_at,
+      };
+    });
   }
 
   async createProduct(data: {
@@ -149,25 +161,82 @@ class ApiClient {
     lead_time_days?: number;
     supplier_name?: string;
   }): Promise<ProductInventory> {
-    const raw: any = await this.request('/products/', {
+    const payload = {
+      sku: data.sku,
+      name: data.name,
+      category: data.category || 'General',
+      unit_cost: data.unit_cost,
+      selling_price: data.unit_price,
+      current_stock: data.stock_on_hand ?? 0,
+      safety_stock: data.safety_stock ?? data.reorder_point ?? 10,
+      lead_time_days: data.lead_time_days ?? 7,
+      supplier_name: data.supplier_name || 'Direct Supplier',
+    };
+    const raw: any = await this.request('/products', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
+    const stock = raw.current_stock ?? raw.stock_on_hand ?? 0;
+    const reorder = raw.safety_stock ?? raw.reorder_point ?? 10;
     return {
       id: raw.id,
       merchant_id: raw.merchant_id,
       sku: raw.sku,
       name: raw.name,
       category: raw.category || 'General',
-      unitCost: raw.unit_cost,
-      unitPrice: raw.unit_price,
-      stockOnHand: raw.stock_on_hand,
-      reorderThreshold: raw.reorder_point,
-      safetyStock: raw.safety_stock,
-      leadTimeDays: raw.lead_time_days,
+      unitCost: Number(raw.unit_cost ?? 0),
+      unitPrice: Number(raw.selling_price ?? raw.unit_price ?? 0),
+      stockOnHand: stock,
+      reorderThreshold: reorder,
+      safetyStock: Number(raw.safety_stock ?? 10),
+      leadTimeDays: Number(raw.lead_time_days ?? 7),
       supplierName: raw.supplier_name || 'Standard Supplier',
-      status: raw.stock_on_hand <= 0 ? 'OUT_OF_STOCK' : raw.stock_on_hand <= raw.reorder_point ? 'LOW_STOCK' : 'IN_STOCK',
+      status: raw.status || (stock <= 0 ? 'OUT_OF_STOCK' : stock <= reorder ? 'LOW_STOCK' : 'IN_STOCK'),
     };
+  }
+
+  async updateProduct(productId: string, data: Partial<{
+    name: string;
+    category: string;
+    unit_cost: number;
+    unit_price: number;
+    selling_price: number;
+    safety_stock: number;
+    lead_time_days: number;
+    supplier_name: string;
+    is_active: boolean;
+  }>): Promise<ProductInventory> {
+    const payload: any = { ...data };
+    if (data.unit_price !== undefined && data.selling_price === undefined) {
+      payload.selling_price = data.unit_price;
+    }
+    const raw: any = await this.request(`/products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    const stock = raw.current_stock ?? raw.stock_on_hand ?? 0;
+    const reorder = raw.safety_stock ?? raw.reorder_point ?? 10;
+    return {
+      id: raw.id,
+      merchant_id: raw.merchant_id,
+      sku: raw.sku,
+      name: raw.name,
+      category: raw.category || 'General',
+      unitCost: Number(raw.unit_cost ?? 0),
+      unitPrice: Number(raw.selling_price ?? raw.unit_price ?? 0),
+      stockOnHand: stock,
+      reorderThreshold: reorder,
+      safetyStock: Number(raw.safety_stock ?? 10),
+      leadTimeDays: Number(raw.lead_time_days ?? 7),
+      supplierName: raw.supplier_name || 'Standard Supplier',
+      status: raw.status || (stock <= 0 ? 'OUT_OF_STOCK' : stock <= reorder ? 'LOW_STOCK' : 'IN_STOCK'),
+    };
+  }
+
+  async deleteProduct(productId: string): Promise<{ message: string }> {
+    return this.request(`/products/${productId}`, {
+      method: 'DELETE',
+    });
   }
 
   async importProductsCsv(csvContent: string): Promise<{ imported_count: number; message: string }> {

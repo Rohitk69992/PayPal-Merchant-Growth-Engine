@@ -1,6 +1,6 @@
 from typing import Optional, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 class ProductCreate(BaseModel):
     sku: str = Field(min_length=2, max_length=64)
@@ -26,10 +26,10 @@ class ProductCreate(BaseModel):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
-    unit_cost: Optional[float] = None
-    selling_price: Optional[float] = None
-    safety_stock: Optional[int] = None
-    lead_time_days: Optional[int] = None
+    unit_cost: Optional[float] = Field(None, ge=0.0)
+    selling_price: Optional[float] = Field(None, gt=0.0)
+    safety_stock: Optional[int] = Field(None, ge=0)
+    lead_time_days: Optional[int] = Field(None, ge=1)
     supplier_name: Optional[str] = None
     is_active: Optional[bool] = None
 
@@ -48,8 +48,7 @@ class ProductResponse(BaseModel):
     status: str  # IN_STOCK, LOW_STOCK, OUT_OF_STOCK
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DailySaleCreate(BaseModel):
     product_id: str
@@ -76,7 +75,7 @@ class DailySaleResponse(BaseModel):
     sales_date: str
     units_sold: int
     revenue: float
+    channel: str = "PAYPAL_CHECKOUT"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

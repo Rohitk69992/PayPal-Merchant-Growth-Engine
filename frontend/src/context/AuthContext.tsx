@@ -113,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    apiClient.logout();
     localStorage.removeItem('token');
     localStorage.removeItem('current_merchant_id');
     setToken(null);

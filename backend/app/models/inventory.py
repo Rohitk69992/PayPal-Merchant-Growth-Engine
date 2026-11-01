@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Column, String, Numeric, Integer, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -15,15 +15,15 @@ class Product(Base):
     sku = Column(String(64), nullable=False)
     name = Column(String(255), nullable=False)
     category = Column(String(100), default="General", nullable=False)
-    unit_cost = Column(Float, default=0.0, nullable=False)
-    selling_price = Column(Float, nullable=False)
+    unit_cost = Column(Numeric(10, 2), default=0.00, nullable=False)
+    selling_price = Column(Numeric(10, 2), nullable=False)
     current_stock = Column(Integer, default=0, nullable=False)
     safety_stock = Column(Integer, default=10, nullable=False)
     lead_time_days = Column(Integer, default=7, nullable=False)
     supplier_name = Column(String(255), default="Direct Supplier", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     __table_args__ = (
         UniqueConstraint("merchant_id", "sku", name="uq_merchant_product_sku"),
@@ -45,7 +45,7 @@ class InventoryMovement(Base):
     stock_after = Column(Integer, nullable=False)
     reason = Column(String(255), nullable=True)
     reference_id = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     product = relationship("Product", back_populates="movements")
 
@@ -57,8 +57,9 @@ class DailySale(Base):
     product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
     sales_date = Column(String(10), nullable=False, index=True)  # YYYY-MM-DD format
     units_sold = Column(Integer, default=0, nullable=False)
-    revenue = Column(Float, default=0.0, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    revenue = Column(Numeric(12, 2), default=0.00, nullable=False)
+    channel = Column(String(50), default="PAYPAL_CHECKOUT", nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     __table_args__ = (
         UniqueConstraint("merchant_id", "product_id", "sales_date", name="uq_merchant_product_daily_sale"),
@@ -76,7 +77,7 @@ class ReorderRecommendation(Base):
     reasoning = Column(Text, nullable=False)
     urgency = Column(String(20), default="MEDIUM", nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
     status = Column(String(30), default="PENDING", nullable=False)  # PENDING, ORDERED, DISMISSED
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     product = relationship("Product", back_populates="reorder_recommendations")
 
@@ -87,11 +88,11 @@ class PurchaseOrderDraft(Base):
     merchant_id = Column(String(36), ForeignKey("merchant_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
     quantity = Column(Integer, nullable=False)
-    unit_cost = Column(Float, nullable=False)
-    total_amount = Column(Float, nullable=False)
+    unit_cost = Column(Numeric(10, 2), nullable=False)
+    total_amount = Column(Numeric(12, 2), nullable=False)
     supplier_name = Column(String(255), nullable=False)
     status = Column(String(30), default="DRAFT", nullable=False)  # DRAFT, SUBMITTED, RECEIVED, CANCELLED
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    received_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    received_at = Column(DateTime(timezone=True), nullable=True)
 
     product = relationship("Product")

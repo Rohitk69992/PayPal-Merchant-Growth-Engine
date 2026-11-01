@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -25,6 +25,8 @@ interface HomeDashboardProps {
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onOpenAiDrawer }) => {
   const navigate = useNavigate();
+  const outlet = useOutletContext<{ onOpenAiDrawer?: () => void }>();
+  const handleOpenAi = (outlet && outlet.onOpenAiDrawer) ? outlet.onOpenAiDrawer : onOpenAiDrawer;
   const { user, currentMerchant } = useAuth();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [showBalance, setShowBalance] = useState(true);
@@ -249,7 +251,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onOpenAiDrawer }) 
             </button>
 
             <button
-              onClick={onOpenAiDrawer}
+              onClick={handleOpenAi}
               className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all cursor-pointer"
             >
               <Bot className="w-3.5 h-3.5" />

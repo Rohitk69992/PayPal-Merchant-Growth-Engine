@@ -79,20 +79,19 @@ This platform strictly enforces a **no-fabricated-data policy**:
 
 ## 📂 Documentation Directory
 
-Comprehensive technical specifications are available in [`docs/`](./docs/):
-- 📘 [`ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — End-to-end system topology, data flows, and design trade-offs.
-- 🗄️ [`DATABASE.md`](./docs/DATABASE.md) — Relational ERD, table definitions, foreign keys, and indexes.
-- 🔐 [`AUTHENTICATION.md`](./docs/AUTHENTICATION.md) — JWT lifecycle, Bcrypt hashing, and multi-tenant resolution.
-- 💳 [`PAYPAL_INTEGRATION.md`](./docs/PAYPAL_INTEGRATION.md) — Mode A vs Mode B, Orders API v2, and Webhooks.
-- 📊 [`DATA_PROVENANCE.md`](./docs/DATA_PROVENANCE.md) — Zero-mock policy and merchant state progression.
-- 🧠 [`ML_PIPELINES.md`](./docs/ML_PIPELINES.md) — RFM mathematical formulas, Holt-Winters, and ROP safety stock.
-- 🤖 [`AGENTIC_AI.md`](./docs/AGENTIC_AI.md) — Gemini orchestration, backend tools, and security guardrails.
-- 📡 [`API_REFERENCE.md`](./docs/API_REFERENCE.md) — Complete OpenAPI v1 endpoint specifications and payloads.
-- 🛡️ [`SECURITY.md`](./docs/SECURITY.md) — Symmetric secret encryption, tenant boundaries, OWASP mitigations.
-- 🧪 [`TESTING.md`](./docs/TESTING.md) — Automated pytest suites and 12-step E2E verification script.
-- 🚀 [`DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — Environment variables, database setup, and production builds.
-
-Architecture reference documents from Phase 0 are in [`architecture/`](./architecture/).
+Comprehensive technical specifications and operations guides are available in [`docs/`](./docs/):
+- 📘 [`DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) — Complete database inventory, entity-relationship models, and table mapping.
+- 🗄️ [`DATABASE_SCHEMA.md`](./docs/DATABASE_SCHEMA.md) — Comprehensive schema documentation for all 32 PostgreSQL tables.
+- 💻 [`DATABASE_SETUP_LOCAL.md`](./docs/DATABASE_SETUP_LOCAL.md) — Step-by-step local-first PostgreSQL installation and configuration guide.
+- 🔄 [`MIGRATIONS_GUIDE.md`](./docs/MIGRATIONS_GUIDE.md) — Alembic migration workflows, generation, inspection, and rollback procedures.
+- 🔐 [`AUTHENTICATION.md`](./docs/AUTHENTICATION.md) — Argon2id hashing, stateful session tokens, password resets, and Google OIDC.
+- 🌐 [`GOOGLE_OAUTH_SETUP.md`](./docs/GOOGLE_OAUTH_SETUP.md) — Google Cloud Console credentials and OpenID Connect configuration.
+- 🏢 [`MERCHANT_MANAGEMENT_AND_MULTI_TENANCY.md`](./docs/MERCHANT_MANAGEMENT_AND_MULTI_TENANCY.md) — Multi-tenant architecture, workspace switching, and RBAC rules.
+- 📦 [`BUSINESS_DATA_PERSISTENCE.md`](./docs/BUSINESS_DATA_PERSISTENCE.md) — Product catalogs, inventory ledger, daily sales, and transaction idempotency.
+- 🧠 [`ML_AND_AI_PERSISTENCE.md`](./docs/ML_AND_AI_PERSISTENCE.md) — Scikit-learn RFM clustering and Statsmodels Holt-Winters model tracking.
+- 🎨 [`FRONTEND_INTEGRATION_AND_ALIGNMENT.md`](./docs/FRONTEND_INTEGRATION_AND_ALIGNMENT.md) — API client routes, parameter normalization, and React UI alignment.
+- 🛡️ [`SECURITY_AND_TESTING_VERIFICATION.md`](./docs/SECURITY_AND_TESTING_VERIFICATION.md) — Threat model mitigations, SQL injection tests, and test results.
+- ⚙️ [`ENVIRONMENT_VARIABLES.md`](./docs/ENVIRONMENT_VARIABLES.md) — Comprehensive environment configuration reference.
 
 ---
 
@@ -101,8 +100,15 @@ Architecture reference documents from Phase 0 are in [`architecture/`](./archite
 ### 1. Prerequisites
 - Python 3.11+
 - Node.js 18+ & npm
+- PostgreSQL 15+ (Local-first, running on port 5432)
 
-### 2. Backend Setup
+### 2. Database Setup
+```bash
+# Apply Alembic database migrations to local PostgreSQL
+alembic upgrade head
+```
+
+### 3. Backend Setup
 ```bash
 # Set up Python environment
 pip install -r backend/requirements.txt
@@ -112,7 +118,7 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 Swagger UI available at: `http://127.0.0.1:8000/docs`
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -124,24 +130,17 @@ Merchant Dashboard available at: `http://localhost:5173`
 
 ## 🧪 Verification & Automated Testing
 
-### Run Pytest Integration Suite
-```bash
-python -m pytest backend/tests -v
+### Run Pytest Integration & Security Suite (34/34 Passing)
+```powershell
+$env:PYTHONPATH="."
+pytest backend/tests/ -v
 ```
-*Output: 4/4 test suites passed with 100% success.*
 
-### Run End-to-End Platform Verification Script
-```bash
-python scripts/verify_platform.py
-```
-*Output: All 12 end-to-end lifecycle verification checks passed.*
-
-### Build Production Frontend
+### Build Production Frontend (0 Errors)
 ```bash
 cd frontend
 npm run build
 ```
-*Output: Compiled with 0 TypeScript / bundle errors.*
 
 ---
 

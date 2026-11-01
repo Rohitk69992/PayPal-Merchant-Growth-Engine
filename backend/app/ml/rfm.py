@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import pandas as pd
 from datetime import datetime, timezone
@@ -7,12 +8,13 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sqlalchemy.orm import Session
 from backend.app.models.transaction import Customer, Transaction
-from backend.app.models.analytics import CustomerSegment, CustomerSegmentAssignment
+from backend.app.models.analytics import CustomerSegment, CustomerSegmentAssignment, MLModel, MLTrainingRun
 
 def calculate_rfm_segments(merchant_id: str, db: Session) -> Dict[str, Any]:
     """
     Computes genuine RFM customer segmentation using Scikit-learn K-Means.
     Enforces strict insufficient-data boundaries: requires at least 4 customers with transaction history.
+    Persists segments, customer assignments, model metadata, and training runs to PostgreSQL.
     """
     customers = db.query(Customer).filter(Customer.merchant_id == merchant_id).all()
     if len(customers) < 4:
@@ -28,7 +30,10 @@ def calculate_rfm_segments(merchant_id: str, db: Session) -> Dict[str, Any]:
     records = []
     for c in customers:
         if c.last_purchase_at:
-            recency = max(0, (now - c.last_purchase_at.replace(tzinfo=timezone.utc if c.last_purchase_at.tzinfo is None else None)).days)
+            last_p = c.last_purchase_at
+            if last_p.tzinfo is None:
+                last_p = last_p.replace(tzinfo=timezone.utc)
+            recency = max(0, (now - last_p).days)
         else:
             recency = 365
         records.append({
@@ -36,7 +41,7 @@ def calculate_rfm_segments(merchant_id: str, db: Session) -> Dict[str, Any]:
             "email": c.email,
             "recency": recency,
             "frequency": max(1, c.order_count),
-            "monetary": max(0.01, c.total_spend)
+            "monetary": max(0.01, float(c.total_spend) if c.total_spend is not None else 0.01)
         })
 
     df = pd.DataFrame(records)
@@ -128,6 +133,40 @@ def calculate_rfm_segments(merchant_id: str, db: Session) -> Dict[str, Any]:
             "color": seg.color
         })
 
+    # Persist ML Model metadata and training run execution
+    ml_model = db.query(MLModel).filter(
+        MLModel.merchant_id == merchant_id,
+        MLModel.model_name == "KMEANS_RFM"
+    ).first()
+    if not ml_model:
+        ml_model = MLModel(
+            merchant_id=merchant_id,
+            model_name="KMEANS_RFM",
+            version="1.0.0",
+            algorithm="Scikit-Learn KMeans Clustering",
+            description="RFM Customer Segmentation model clustering Recency, Frequency, and Monetary metrics."
+        )
+        db.add(ml_model)
+        db.flush()
+
+    training_run = MLTrainingRun(
+        merchant_id=merchant_id,
+        model_id=ml_model.id,
+        status="COMPLETED",
+        data_points_count=total_customers,
+        metrics_json=json.dumps({
+            "silhouette_score": round(sil_score, 3),
+            "k_clusters": k,
+            "total_customers": total_customers
+        }),
+        parameters_json=json.dumps({
+            "n_clusters": k,
+            "n_init": 10,
+            "random_state": 42
+        }),
+        completed_at=datetime.now(timezone.utc)
+    )
+    db.add(training_run)
     db.commit()
 
     return {

@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class OverviewResponse(BaseModel):
     total_balance: float
@@ -24,8 +24,7 @@ class RFMSegmentResponse(BaseModel):
     avg_recency_days: int
     color: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LocationShare(BaseModel):
     city: str
@@ -60,3 +59,5 @@ class DemandForecastResponse(BaseModel):
     recommended_units_next_period: Optional[int] = None
     data_points_used: Optional[int] = None
     rationale: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

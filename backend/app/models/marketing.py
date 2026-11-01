@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Numeric, Integer, DateTime, ForeignKey, Text
 from backend.app.core.database import Base
 
 def generate_uuid() -> str:
@@ -16,8 +16,8 @@ class MarketingCampaign(Base):
     email_subject = Column(String(255), nullable=False)
     body_copy = Column(Text, nullable=False)
     discount_code = Column(String(64), nullable=False)
-    discount_pct = Column(Float, default=0.0, nullable=False)
+    discount_pct = Column(Numeric(5, 2), default=0.00, nullable=False)
     estimated_reach = Column(Integer, default=0, nullable=False)
-    expected_conversion_rate = Column(Float, default=0.0, nullable=False)
+    expected_conversion_rate = Column(Numeric(5, 2), default=0.00, nullable=False)
     status = Column(String(30), default="DRAFT", nullable=False)  # DRAFT, SCHEDULED, ACTIVE, COMPLETED
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

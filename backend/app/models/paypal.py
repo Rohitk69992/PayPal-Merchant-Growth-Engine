@@ -17,9 +17,9 @@ class PayPalConnection(Base):
     encrypted_client_secret = Column(Text, nullable=False)
     webhook_id = Column(String(100), nullable=True)
     is_connected = Column(Boolean, default=False, nullable=False)
-    last_sync_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    last_sync_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     merchant = relationship("MerchantProfile", back_populates="paypal_connection")
 
@@ -33,8 +33,8 @@ class WebhookEvent(Base):
     summary = Column(Text, nullable=True)
     raw_payload = Column(Text, nullable=False)
     status = Column(String(50), default="RECEIVED", nullable=False)  # RECEIVED, PROCESSED, FAILED, DUPLICATE
-    processed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 class PayPalSyncJob(Base):
     __tablename__ = "paypal_sync_jobs"
@@ -44,5 +44,5 @@ class PayPalSyncJob(Base):
     status = Column(String(50), default="PENDING", nullable=False)  # PENDING, RUNNING, COMPLETED, FAILED
     records_synced = Column(Integer, default=0, nullable=False)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)

@@ -250,7 +250,8 @@ export const SettingsPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-3 py-3 text-slate-600 font-mono">
-                          {log.entity_type} {log.entity_id ? `(${log.entity_id.slice(0, 8)}...)` : ''}
+                          {log.entity_type || log.resource_type || 'SYSTEM'}{' '}
+                          {(log.entity_id || log.resource_id) ? `(${String(log.entity_id || log.resource_id).slice(0, 8)}...)` : ''}
                         </td>
                       </tr>
                     ))}

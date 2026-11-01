@@ -10,7 +10,9 @@ import {
   CheckCircle2, 
   XCircle, 
   Loader2,
-  Boxes
+  Boxes,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -24,6 +26,17 @@ export const ProductsPage: React.FC = () => {
   const [csvContent, setCsvContent] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit product state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductInventory | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editUnitCost, setEditUnitCost] = useState('');
+  const [editUnitPrice, setEditUnitPrice] = useState('');
+  const [editSafetyStock, setEditSafetyStock] = useState('');
+  const [editLeadTimeDays, setEditLeadTimeDays] = useState('');
+  const [editSupplierName, setEditSupplierName] = useState('');
 
   // New product form fields
   const [sku, setSku] = useState('');
@@ -93,6 +106,55 @@ export const ProductsPage: React.FC = () => {
       setFormError(err.message || 'CSV import failed.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (p: ProductInventory) => {
+    setEditingProduct(p);
+    setEditName(p.name);
+    setEditCategory(p.category);
+    setEditUnitCost(p.unitCost.toString());
+    setEditUnitPrice(p.unitPrice.toString());
+    setEditSafetyStock(p.safetyStock.toString());
+    setEditLeadTimeDays(p.leadTimeDays.toString());
+    setEditSupplierName(p.supplierName);
+    setFormError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setFormError(null);
+    setIsSubmitting(true);
+    try {
+      await apiClient.updateProduct(editingProduct.id, {
+        name: editName,
+        category: editCategory,
+        unit_cost: parseFloat(editUnitCost),
+        unit_price: parseFloat(editUnitPrice),
+        safety_stock: parseInt(editSafetyStock, 10),
+        lead_time_days: parseInt(editLeadTimeDays, 10),
+        supplier_name: editSupplierName,
+      });
+      setIsEditModalOpen(false);
+      setEditingProduct(null);
+      await fetchProducts();
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to update product.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (p: ProductInventory) => {
+    const confirmed = window.confirm(`Archive product "${p.name}" (SKU: ${p.sku})? It will be deactivated from active catalog.`);
+    if (!confirmed) return;
+    try {
+      await apiClient.deleteProduct(p.id);
+      await fetchProducts();
+    } catch (err: any) {
+      alert(err.message || 'Failed to archive product.');
     }
   };
 
@@ -213,6 +275,7 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
                   <th className="px-5 py-3.5">Unit Price</th>
                   <th className="px-5 py-3.5">Lead Time</th>
                   <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -260,6 +323,24 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
                           Out of Stock
                         </Badge>
                       )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openEditModal(p)}
+                          title="Edit Product"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p)}
+                          title="Archive Product"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -468,6 +549,131 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
                 {isSubmitting ? 'Importing...' : 'Import Products'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {isEditModalOpen && editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit Product</h3>
+                <p className="text-xs font-mono text-slate-500 mt-0.5">SKU: {editingProduct.sku}</p>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {formError && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-800 text-xs font-medium">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateProduct} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Product Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Supplier Name</label>
+                  <input
+                    type="text"
+                    value={editSupplierName}
+                    onChange={(e) => setEditSupplierName(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Unit Cost ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editUnitCost}
+                    onChange={(e) => setEditUnitCost(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Retail Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editUnitPrice}
+                    onChange={(e) => setEditUnitPrice(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Safety Stock</label>
+                  <input
+                    type="number"
+                    required
+                    value={editSafetyStock}
+                    onChange={(e) => setEditSafetyStock(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Lead Time (Days)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editLeadTimeDays}
+                    onChange={(e) => setEditLeadTimeDays(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 text-xs font-bold text-white bg-[#0070BA] hover:bg-[#003087] rounded-xl shadow-xs"
+                >
+                  {isSubmitting ? 'Updating...' : 'Update Product'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

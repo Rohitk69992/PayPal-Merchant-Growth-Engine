@@ -1,5 +1,4 @@
 import os
-import json
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,8 +11,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
-    # Database
-    DATABASE_URL: str = "sqlite:///./merchant_growth.db"
+    # Database Configuration (PostgreSQL 18 production / local-first)
+    DATABASE_URL: str = "postgresql://paypal_app:PaypalApp2026Secure!@localhost:5432/paypal_growth_engine"
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
+    DB_ECHO: bool = False
 
     # CORS
     CORS_ORIGINS: List[str] = [
@@ -22,6 +26,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000"
     ]
+
+    # Google OAuth 2.0 / OpenID Connect
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:5173/auth/google/callback"
 
     # PayPal Developer Platform
     PAYPAL_ENVIRONMENT: str = "sandbox"
@@ -34,7 +43,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-1.5-flash"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
