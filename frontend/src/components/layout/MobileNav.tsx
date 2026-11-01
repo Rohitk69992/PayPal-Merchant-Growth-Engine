@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Home,
+  LayoutDashboard,
   Receipt,
   Boxes,
   Package,
@@ -17,7 +17,7 @@ export const MobileNav: React.FC = () => {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const mainTabs = [
-    { name: 'Home', path: '/', icon: Home },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Catalog', path: '/products', icon: Boxes },
     { name: 'Inventory', path: '/inventory', icon: Package },
     { name: 'Marketing', path: '/marketing', icon: Target },
@@ -32,26 +32,36 @@ export const MobileNav: React.FC = () => {
   ];
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-col items-center justify-center py-2 px-1 text-[11px] font-medium transition-colors ${
-      isActive ? 'text-[#0070e0] font-bold' : 'text-slate-500 hover:text-slate-900'
+    `flex flex-col items-center justify-center py-1.5 px-1 text-[10px] font-medium transition-colors ${
+      isActive
+        ? 'text-[#1E3A5F] font-bold border-t-2 border-[#1E3A5F]'
+        : 'text-[#64748B] hover:text-[#172B45]'
     }`;
 
   return (
     <>
-      {/* "More" Drawer for Mobile Viewport */}
+      {/* "More" Slide-up Sheet for Mobile */}
       {isMoreMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs flex items-end">
-          <div className="bg-white w-full rounded-t-3xl p-5 shadow-2xl border-t border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-              <span className="font-bold text-slate-800 text-sm">All Merchant Growth Tools</span>
+        <div className="fixed inset-0 z-40 bg-[#172B45]/50 backdrop-blur-xs flex items-end lg:hidden">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsMoreMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="relative bg-white w-full rounded-t-2xl p-5 shadow-2xl border-t border-[#D9E2EC] z-10">
+            <div className="flex items-center justify-between pb-3 border-b border-[#D9E2EC] mb-3">
+              <span className="font-bold text-[#172B45] text-xs uppercase tracking-wider">
+                All Navigation Modules
+              </span>
               <button
                 onClick={() => setIsMoreMenuOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-[#64748B] hover:bg-[#E8EEF5] cursor-pointer"
+                aria-label="Close menu"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -59,9 +69,9 @@ export const MobileNav: React.FC = () => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setIsMoreMenuOpen(false)}
-                    className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-medium text-xs border border-slate-100 transition-colors"
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F8FAFC] hover:bg-[#DCEAF5] text-[#172B45] font-medium text-xs border border-[#D9E2EC] transition-colors"
                   >
-                    <Icon className="w-4 h-4 text-blue-600 shrink-0" />
+                    <Icon className="w-4 h-4 text-[#4779A8] shrink-0" />
                     <span>{item.name}</span>
                   </NavLink>
                 );
@@ -72,13 +82,13 @@ export const MobileNav: React.FC = () => {
       )}
 
       {/* Main Bottom Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg lg:hidden">
-        <div className="max-w-md mx-auto grid grid-cols-5 h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#D9E2EC] shadow-sm lg:hidden">
+        <div className="max-w-md mx-auto grid grid-cols-5 h-14">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <NavLink key={tab.path} to={tab.path} className={navClass}>
-                <Icon className="w-5 h-5 mb-0.5" />
+                <Icon className="w-4 h-4 mb-0.5" />
                 <span>{tab.name}</span>
               </NavLink>
             );
@@ -87,11 +97,13 @@ export const MobileNav: React.FC = () => {
           {/* More Tab */}
           <button
             onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-            className={`flex flex-col items-center justify-center py-2 px-1 text-[11px] font-medium transition-colors cursor-pointer ${
-              isMoreMenuOpen ? 'text-[#0070e0] font-bold' : 'text-slate-500 hover:text-slate-900'
+            className={`flex flex-col items-center justify-center py-1.5 px-1 text-[10px] font-medium transition-colors cursor-pointer ${
+              isMoreMenuOpen
+                ? 'text-[#1E3A5F] font-bold border-t-2 border-[#1E3A5F]'
+                : 'text-[#64748B] hover:text-[#172B45]'
             }`}
           >
-            <MoreHorizontal className="w-5 h-5 mb-0.5" />
+            <MoreHorizontal className="w-4 h-4 mb-0.5" />
             <span>More</span>
           </button>
         </div>

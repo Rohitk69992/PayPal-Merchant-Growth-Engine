@@ -1,115 +1,126 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Home,
+  LayoutDashboard,
   TrendingUp,
-  Target,
   Package,
   Receipt,
   Boxes,
   CreditCard,
   Settings,
-  Sparkles,
+  Target,
   ChevronRight,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   className?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
-  const primaryNav = [
-    { name: 'Home', path: '/', icon: Home },
-    { name: 'Growth Engine', path: '/grow', icon: TrendingUp, badge: 'AI' },
-    { name: 'Product Catalog', path: '/products', icon: Boxes },
-    { name: 'Sales Entry', path: '/sales', icon: TrendingUp },
-    { name: 'Inventory Assistant', path: '/inventory', icon: Package },
-    { name: 'Marketing & RFM', path: '/marketing', icon: Target },
-    { name: 'Transactions', path: '/transactions', icon: Receipt },
-  ];
+  const { currentMerchant } = useAuth();
 
-  const secondaryNav = [
-    { name: 'PayPal Integration', path: '/paypal', icon: CreditCard, badge: 'API' },
-    { name: 'Settings & Audit', path: '/settings', icon: Settings },
+  const navigationSections = [
+    {
+      title: 'OVERVIEW',
+      items: [
+        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+        { name: 'Growth Engine', path: '/grow', icon: TrendingUp, badge: 'AI' },
+      ],
+    },
+    {
+      title: 'BUSINESS OPERATIONS',
+      items: [
+        { name: 'Products Catalog', path: '/products', icon: Boxes },
+        { name: 'Sales Entry', path: '/sales', icon: TrendingUp },
+        { name: 'Inventory Assistant', path: '/inventory', icon: Package },
+        { name: 'Transactions Ledger', path: '/transactions', icon: Receipt },
+      ],
+    },
+    {
+      title: 'BUSINESS INTELLIGENCE',
+      items: [
+        { name: 'Marketing & RFM', path: '/marketing', icon: Target, badge: 'ML' },
+      ],
+    },
+    {
+      title: 'INTEGRATIONS',
+      items: [
+        { name: 'PayPal Connections', path: '/paypal', icon: CreditCard },
+      ],
+    },
+    {
+      title: 'ACCOUNT',
+      items: [
+        { name: 'Profile & Settings', path: '/settings', icon: Settings },
+      ],
+    },
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+    `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-120 ${
       isActive
-        ? 'bg-blue-50 text-blue-700 font-semibold shadow-xs'
-        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+        ? 'bg-[#DCEAF5] text-[#1E3A5F] font-semibold border-l-2 border-[#1E3A5F] pl-2.5 shadow-2xs'
+        : 'text-[#64748B] hover:text-[#172B45] hover:bg-[#F1F5F9]'
     }`;
 
   return (
-    <aside className={`w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 ${className}`}>
-      <div className="space-y-6">
-        {/* Core Growth Section */}
-        <div>
-          <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Intelligence Engine
-          </p>
-          <nav className="space-y-1">
-            {primaryNav.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink key={item.path} to={item.path} className={linkClass}>
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-blue-600 text-white rounded-md tracking-wider">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Integration & Settings */}
-        <div>
-          <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            Platform & Developer
-          </p>
-          <nav className="space-y-1">
-            {secondaryNav.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink key={item.path} to={item.path} className={linkClass}>
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-emerald-600 text-white rounded-md tracking-wider">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </nav>
-        </div>
+    <aside
+      className={`w-60 bg-white border-r border-[#D9E2EC] flex flex-col justify-between p-3.5 select-none shrink-0 ${className}`}
+    >
+      <div className="space-y-5 overflow-y-auto pr-1">
+        {navigationSections.map((section) => (
+          <div key={section.title}>
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              {section.title}
+            </p>
+            <nav className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink key={item.path} to={item.path} className={linkClass}>
+                    <div className="flex items-center gap-2.5">
+                      <Icon className="w-4 h-4 shrink-0 text-[#4779A8]" />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="px-1.5 py-0.2 text-[9px] font-bold bg-[#1E3A5F] text-white rounded font-mono">
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+        ))}
       </div>
 
-      {/* Bottom Merchant Support Banner */}
-      <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 text-white">
-        <div className="flex items-center gap-2 mb-1.5">
-          <Sparkles className="w-4 h-4 text-blue-300" />
-          <span className="text-xs font-bold tracking-tight">PayPal AI Partner</span>
+      {/* Bottom Tenant Information Box */}
+      <div className="pt-3 border-t border-[#D9E2EC]">
+        <div className="p-3 rounded-lg bg-[#F1F5F9] border border-[#D9E2EC] text-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              Tenant Environment
+            </span>
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-[#16A085]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#16A085]" />
+              Online
+            </span>
+          </div>
+          <p className="font-bold text-[#172B45] truncate">
+            {currentMerchant?.business_name || 'Merchant Workspace'}
+          </p>
+          <div className="flex items-center justify-between text-[10px] text-[#64748B] mt-1 font-mono">
+            <span>Currency: {currentMerchant?.currency || 'USD'}</span>
+            <NavLink
+              to="/settings"
+              className="text-[#4779A8] hover:text-[#1E3A5F] font-semibold flex items-center"
+            >
+              Audit <ChevronRight className="w-3 h-3" />
+            </NavLink>
+          </div>
         </div>
-        <p className="text-[11px] text-blue-200 leading-snug">
-          Transaction stream continuously calibrated with Scikit-learn RFM and Holt-Winters models.
-        </p>
-        <NavLink
-          to="/settings"
-          className="mt-2.5 flex items-center justify-between text-[11px] font-semibold text-white/90 hover:text-white pt-2 border-t border-blue-800/80"
-        >
-          <span>Audit Ledger & Export</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </NavLink>
       </div>
     </aside>
   );

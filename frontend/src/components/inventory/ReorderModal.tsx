@@ -28,19 +28,19 @@ export const ReorderModal: React.FC<ReorderModalProps> = ({
     if (isOpen) {
       if (product) {
         setSelectedProduct(product);
-        setQuantity(Math.max(10, (product.reorderThreshold * 2) - product.stockOnHand));
+        setQuantity(Math.max(10, product.reorderThreshold * 2 - product.stockOnHand));
       } else {
         apiClient.getProducts().then((prods) => {
           if (prods.length > 0) {
             setSelectedProduct(prods[0]);
-            setQuantity(Math.max(10, (prods[0].reorderThreshold * 2) - prods[0].stockOnHand));
+            setQuantity(Math.max(10, prods[0].reorderThreshold * 2 - prods[0].stockOnHand));
           }
         });
       }
     }
   }, [isOpen, product]);
 
-  const unitCost = selectedProduct?.unitCost ?? 45.00;
+  const unitCost = selectedProduct?.unitCost ?? 45.0;
   const totalCost = quantity * unitCost;
 
   const handleConfirm = async () => {
@@ -69,96 +69,94 @@ export const ReorderModal: React.FC<ReorderModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Create Inventory Purchase Order"
-      subtitle={selectedProduct ? `Replenishment for ${selectedProduct.name}` : 'Replenish Inventory'}
+      subtitle={selectedProduct ? `Replenishment order for ${selectedProduct.name}` : 'Replenish Inventory'}
       maxWidth="md"
     >
       {isDone ? (
         <div className="py-8 text-center space-y-3">
-          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="w-12 h-12 bg-[#E8F6F3] rounded-full flex items-center justify-center mx-auto text-[#16A085] border border-[#A3E4D7]">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h4 className="text-lg font-bold text-slate-900">Purchase Order Dispatched!</h4>
-          <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            Order for {quantity} units registered. Stock levels updated and recorded in the audit trail.
+          <h4 className="text-base font-bold text-[#172B45]">Purchase Order Dispatched</h4>
+          <p className="text-xs text-[#64748B] max-w-xs mx-auto">
+            Order for {quantity} units registered. Physical stock ledger updated and recorded in the audit trail.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 text-red-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-[#FADBD8] border border-[#F5B7B1] text-[#C45B61] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Product Overview Card */}
           {selectedProduct ? (
-            <div className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                <Package className="w-6 h-6" />
+            <div className="flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg border border-[#D9E2EC]">
+              <div className="w-10 h-10 rounded-lg bg-[#DCEAF5] flex items-center justify-center text-[#1E3A5F] shrink-0 border border-[#CBD5E1]">
+                <Package className="w-5 h-5" />
               </div>
               <div className="overflow-hidden">
-                <h4 className="text-sm font-bold text-slate-900 truncate">{selectedProduct.name}</h4>
-                <p className="text-xs text-slate-500">
+                <h4 className="text-xs font-bold text-[#172B45] truncate">{selectedProduct.name}</h4>
+                <p className="text-[11px] text-[#64748B] font-mono">
                   SKU: {selectedProduct.sku} • Supplier: {selectedProduct.supplierName}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    Stock on hand: {selectedProduct.stockOnHand}
+                  <span className="text-[10px] font-semibold text-[#16A085] bg-[#E8F6F3] px-1.5 py-0.5 rounded border border-[#A3E4D7]">
+                    Current Stock: {selectedProduct.stockOnHand}
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[10px] text-[#64748B]">
                     Lead time: {selectedProduct.leadTimeDays} days
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500">No products available to reorder.</p>
+            <p className="text-xs text-[#64748B]">No products available to reorder.</p>
           )}
 
           {/* Quantity Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1">
               Replenishment Quantity (Units)
             </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
-                className="w-full text-base font-bold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
-              />
-            </div>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+              className="w-full text-sm font-bold text-[#172B45] px-3 py-2 rounded-lg border border-[#D9E2EC] focus:outline-none focus:border-[#4779A8]"
+            />
           </div>
 
           {/* Cost Summary */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-            <div className="flex justify-between text-slate-600">
+          <div className="p-3 rounded-lg bg-[#F1F5F9] border border-[#D9E2EC] space-y-1.5 text-xs font-mono">
+            <div className="flex justify-between text-[#64748B] font-sans">
               <span>Unit Wholesale Cost:</span>
-              <span className="font-semibold text-slate-800">${unitCost.toFixed(2)}</span>
+              <span className="font-semibold text-[#172B45]">${unitCost.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-[#64748B] font-sans">
               <span>Estimated Delivery:</span>
-              <span className="font-semibold text-slate-800">
+              <span className="font-semibold text-[#172B45]">
                 {selectedProduct?.leadTimeDays ?? 7} business days
               </span>
             </div>
-            <div className="pt-2 border-t border-slate-200 flex justify-between text-sm font-bold text-slate-900">
-              <span>Total Estimated Invoice:</span>
-              <span className="text-blue-700">
+            <div className="pt-2 border-t border-[#D9E2EC] flex justify-between text-xs font-bold text-[#172B45]">
+              <span className="font-sans">Total Estimated Invoice:</span>
+              <span className="text-[#1E3A5F]">
                 ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D9E2EC]">
             <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
-              variant="success"
+              variant="primary"
               onClick={handleConfirm}
               isLoading={isSubmitting}
               disabled={!selectedProduct}

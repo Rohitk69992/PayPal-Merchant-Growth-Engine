@@ -29,11 +29,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [currentMerchant, setCurrentMerchant] = useState<Merchant | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(() => {
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    return urlParams?.get('token') || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const initAuth = async () => {
-    const savedToken = localStorage.getItem('token');
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramToken = urlParams.get('token');
+    if (paramToken) {
+      localStorage.setItem('token', paramToken);
+      setToken(paramToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    const savedToken = paramToken || localStorage.getItem('token');
     if (!savedToken) {
       setUser(null);
       setMerchants([]);

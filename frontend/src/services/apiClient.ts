@@ -328,26 +328,33 @@ class ApiClient {
     const qs = searchParams.toString();
     const raw = await this.request<any[]>(`/transactions/${qs ? `?${qs}` : ''}`);
 
-    const items: Transaction[] = raw.map((t) => ({
-      id: t.id,
-      title: t.customer_name ? `Sale to ${t.customer_name}` : t.reference_id || 'PayPal Transaction',
-      date: t.created_at,
-      formattedDate: new Date(t.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      type: t.transaction_type as any,
-      amount: t.gross_amount,
-      currency: t.currency,
-      status: t.status as any,
-      source: t.payment_method || 'PAYPAL_WALLET',
-      feeAmount: t.fee_amount,
-      netAmount: t.net_amount,
-      customerName: t.customer_name,
-      paypalOrderId: t.paypal_order_id,
-    }));
+    const items: Transaction[] = raw.map((t) => {
+      const dateStr = t.transaction_date || t.created_at || new Date().toISOString();
+      const parsedDate = new Date(dateStr);
+      const isValidDate = !isNaN(parsedDate.getTime());
+      return {
+        id: t.id,
+        title: t.title || (t.customer_name ? `Sale to ${t.customer_name}` : t.reference_id || 'PayPal Transaction'),
+        date: dateStr,
+        formattedDate: isValidDate
+          ? parsedDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : dateStr,
+        type: (t.type || t.transaction_type || 'RECEIVED') as any,
+        amount: Number(t.gross_amount ?? 0),
+        currency: t.currency || 'USD',
+        status: (t.status || 'COMPLETED') as any,
+        source: t.payment_source || t.payment_method || 'PAYPAL_WALLET',
+        feeAmount: Number(t.fee_amount ?? 0),
+        netAmount: Number(t.net_amount ?? t.gross_amount ?? 0),
+        customerName: t.customer_name,
+        paypalOrderId: t.paypal_transaction_id || t.paypal_order_id,
+      };
+    });
 
     return { items, total: items.length };
   }
@@ -356,7 +363,18 @@ class ApiClient {
     const searchParams = new URLSearchParams();
     if (params?.search) searchParams.append('search', params.search);
     const qs = searchParams.toString();
-    return this.request(`/transactions/customers${qs ? `?${qs}` : ''}`);
+    const raw = await this.request<any[]>(`/transactions/customers${qs ? `?${qs}` : ''}`);
+    return raw.map((c) => ({
+      id: c.id,
+      name: (c.first_name || c.last_name) ? `${c.first_name || ''} ${c.last_name || ''}`.trim() : c.name || c.email,
+      email: c.email,
+      phone: c.phone,
+      city: c.city,
+      total_orders: c.order_count ?? c.total_orders ?? 0,
+      total_spend: Number(c.total_spend ?? 0),
+      last_purchase_date: c.last_purchase_at,
+      segment: c.segment,
+    }));
   }
 
   // --- PayPal Integration Endpoints ---
@@ -395,7 +413,27 @@ class ApiClient {
     segments: CustomerSegment[];
     total_customers_analyzed: number;
   }> {
-    return this.request('/analytics/rfm-segments');
+    const raw = await this.request<any>('/analytics/rfm-segments');
+    const rawSegments = Array.isArray(raw?.segments) ? raw.segments : [];
+    return {
+      status: raw?.status || 'INSUFFICIENT_DATA',
+      message: raw?.message,
+      total_customers_analyzed: raw?.total_customers ?? raw?.total_customers_analyzed ?? 0,
+      segments: rawSegments.map((s: any) => ({
+        id: s.id,
+        name: s.name || s.segment_name || 'Segment',
+        segment_name: s.name || s.segment_name || 'Segment',
+        customer_count: s.customer_count ?? 0,
+        percentage: s.percentage ?? 0,
+        avg_recency_days: s.avg_recency_days ?? 0,
+        avg_frequency: s.avg_frequency ?? 0,
+        avg_spend: s.avg_spend ?? s.avg_monetary ?? 0,
+        avg_monetary: s.avg_spend ?? s.avg_monetary ?? 0,
+        color: s.color,
+        description: s.description,
+        recommended_actions: s.recommended_actions,
+      })),
+    };
   }
 
   async getCustomerLocations(): Promise<LocationDistribution[]> {
@@ -403,7 +441,7 @@ class ApiClient {
   }
 
   async getCategoryBreakdown(): Promise<CategoryPreference[]> {
-    return this.request('/analytics/categories');
+    return this.request('/analytics/category-shares');
   }
 
   async getProductForecast(productId: string): Promise<ProductForecast> {

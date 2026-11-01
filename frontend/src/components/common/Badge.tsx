@@ -2,7 +2,7 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'success' | 'warning' | 'danger' | 'neutral' | 'ai';
+  variant?: 'primary' | 'navy' | 'success' | 'warning' | 'danger' | 'neutral' | 'ai';
   className?: string;
   size?: 'sm' | 'md';
 }
@@ -13,20 +13,21 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   size = 'md',
 }) => {
-  const base = 'inline-flex items-center font-medium rounded-full';
-  
+  const base = 'inline-flex items-center font-medium leading-none select-none tracking-tight';
+
   const sizeStyles = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-xs',
+    sm: 'px-2 py-0.5 text-[11px] font-semibold rounded-md gap-1',
+    md: 'px-2.5 py-1 text-xs font-semibold rounded-md gap-1.5',
   };
 
   const variantStyles = {
-    primary: 'bg-blue-50 text-blue-700 border border-blue-200',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-200',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-200',
-    neutral: 'bg-slate-100 text-slate-700 border border-slate-200',
-    ai: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs',
+    primary: 'bg-[#DCEAF5] text-[#1E3A5F] border border-[#CBD5E1]',
+    navy: 'bg-[#1E3A5F] text-white border border-[#162C48]',
+    success: 'bg-[#E8F6F3] text-[#16A085] border border-[#A3E4D7]',
+    warning: 'bg-[#FEF9E7] text-[#936B15] border border-[#FAD7A0]',
+    danger: 'bg-[#FADBD8] text-[#C45B61] border border-[#F5B7B1]',
+    neutral: 'bg-[#E8EEF5] text-[#334155] border border-[#D9E2EC]',
+    ai: 'bg-[#1E3A5F] text-[#DCEAF5] border border-[#4779A8]/50 shadow-2xs',
   };
 
   return (

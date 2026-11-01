@@ -22,9 +22,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-500">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0070BA] mb-2" />
-        <span className="text-sm font-semibold">Initializing merchant session...</span>
+      <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center text-[#64748B]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#4779A8] mb-2" />
+        <span className="text-xs font-semibold">Initializing merchant session...</span>
       </div>
     );
   }

@@ -13,7 +13,7 @@ export const AppLayout: React.FC = () => {
   const [isGlobalCampaignOpen, setIsGlobalCampaignOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F1F5F9] flex flex-col font-sans text-[#172B45]">
       {/* Top Application Header */}
       <Header
         onToggleAiDrawer={() => setIsAiDrawerOpen(!isAiDrawerOpen)}
@@ -26,8 +26,8 @@ export const AppLayout: React.FC = () => {
         <Sidebar className="hidden lg:flex" />
 
         {/* Dynamic Fluid Content Viewport */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 lg:pb-6">
+          <div className="max-w-7xl mx-auto">
             <Outlet context={{ onOpenAiDrawer: () => setIsAiDrawerOpen(true) }} />
           </div>
         </main>

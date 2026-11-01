@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
-import { 
-  Settings, 
-  Building2, 
-  Download, 
-  LogOut, 
-  Shield, 
-  Clock, 
-  UserCheck, 
-  Loader2 
+import {
+  Building2,
+  Download,
+  LogOut,
+  Shield,
+  Clock,
+  UserCheck,
+  Loader2,
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 
 export const SettingsPage: React.FC = () => {
   const { user, currentMerchant, merchants, switchMerchant, logout } = useAuth();
@@ -57,79 +57,84 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-5 pb-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#D9E2EC]">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2.5">
-            <Settings className="w-7 h-7 text-blue-600" />
-            Account, Multi-Tenancy & Compliance
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage your merchant tenant profiles, session security, immutable audit logs, and data exports.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#172B45]">
+              Merchant Account, Multi-Tenancy & Security
+            </h1>
+            <Badge variant="navy" size="sm">
+              Tenant Settings
+            </Badge>
+          </div>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            Manage your merchant tenant workspace, authenticated profile, immutable audit ledger, and cryptographic data exports.
           </p>
         </div>
 
-        <button
+        <Button
+          variant="danger"
+          size="sm"
           onClick={logout}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer border border-red-200 self-start sm:self-auto"
+          leftIcon={<LogOut className="w-3.5 h-3.5" />}
         >
-          <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
-        </button>
+          Sign Out
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Business & User Profile (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <Card className="p-6">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100 mb-4">
-              <Building2 className="w-5 h-5 text-blue-600" />
+        <div className="lg:col-span-5 space-y-5">
+          <Card className="p-5 border-[#D9E2EC]">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#172B45] flex items-center gap-2 pb-3 border-b border-[#D9E2EC] mb-3">
+              <Building2 className="w-4 h-4 text-[#4779A8]" />
               Active Merchant Profile
             </h2>
 
             {currentMerchant ? (
-              <div className="space-y-4">
+              <div className="space-y-3.5 text-xs">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Business Name
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                    Business Legal Name
                   </label>
-                  <p className="text-base font-bold text-slate-900">{currentMerchant.business_name}</p>
+                  <p className="text-sm font-bold text-[#172B45] mt-0.5">{currentMerchant.business_name}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Currency
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Ledger Currency
                     </label>
-                    <p className="text-sm font-semibold text-slate-800">{currentMerchant.currency}</p>
+                    <p className="text-xs font-semibold text-[#172B45] font-mono mt-0.5">{currentMerchant.currency}</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Industry
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Industry Sector
                     </label>
-                    <p className="text-sm font-semibold text-slate-800">{currentMerchant.category || 'General'}</p>
+                    <p className="text-xs font-semibold text-[#172B45] mt-0.5">{currentMerchant.category || 'General Retail'}</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                     Merchant Tenant ID
                   </label>
-                  <p className="text-xs font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                  <p className="text-[11px] font-mono text-[#334155] bg-[#F1F5F9] p-2 rounded-md border border-[#D9E2EC] mt-0.5 truncate">
                     {currentMerchant.id}
                   </p>
                 </div>
 
                 {merchants.length > 1 && (
                   <div className="pt-2">
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Switch Active Merchant:
+                    <label className="text-xs font-bold text-[#172B45] block mb-1">
+                      Switch Active Merchant Tenant:
                     </label>
                     <select
                       value={currentMerchant.id}
                       onChange={(e) => switchMerchant(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border rounded-xl bg-white"
+                      className="w-full px-3 py-2 text-xs border border-[#D9E2EC] rounded-lg bg-white text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                     >
                       {merchants.map((m) => (
                         <option key={m.id} value={m.id}>
@@ -141,117 +146,111 @@ export const SettingsPage: React.FC = () => {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No active merchant selected.</p>
+              <p className="text-xs text-[#64748B]">No active merchant selected.</p>
             )}
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100 mb-4">
-              <UserCheck className="w-5 h-5 text-emerald-600" />
-              Authenticated User
+          <Card className="p-5 border-[#D9E2EC]">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#172B45] flex items-center gap-2 pb-3 border-b border-[#D9E2EC] mb-3">
+              <UserCheck className="w-4 h-4 text-[#16A085]" />
+              Authenticated User Account
             </h2>
 
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-xs">
               <div>
-                <span className="text-xs text-slate-400 font-bold uppercase">Name</span>
-                <p className="font-semibold text-slate-800">{user?.full_name}</p>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Full Name</span>
+                <p className="font-semibold text-[#172B45] mt-0.5">{user?.full_name}</p>
               </div>
               <div>
-                <span className="text-xs text-slate-400 font-bold uppercase">Email</span>
-                <p className="font-semibold text-slate-800">{user?.email}</p>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Email</span>
+                <p className="font-semibold text-[#172B45] font-mono mt-0.5">{user?.email}</p>
               </div>
               <div>
-                <span className="text-xs text-slate-400 font-bold uppercase">Account Status</span>
-                <p className="mt-0.5">
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Session Status</span>
+                <p className="mt-1">
                   <Badge variant="success" size="sm">
-                    Active & Verified
+                    Verified JWT Session
                   </Badge>
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-slate-900 to-blue-950 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <Download className="w-5 h-5 text-blue-300" />
-              <h3 className="text-base font-bold">GDPR & Tenant Data Export</h3>
+          <Card className="p-5 bg-white border-[#D9E2EC]">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Download className="w-4 h-4 text-[#4779A8]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#172B45]">Data Portability & GDPR Export</h3>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Download your complete cryptographic JSON payload encompassing products, daily sales, transactions, customer profiles, and audit trails.
+            <p className="text-xs text-[#64748B] leading-relaxed mb-3">
+              Generate and download your complete JSON dataset including product catalog, daily sales records, transactions, customer profiles, and audit trails.
             </p>
-            <button
+            <Button
+              variant="outline"
+              size="md"
               onClick={handleExportData}
               disabled={isExporting}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-slate-100 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+              isLoading={isExporting}
+              className="w-full"
+              leftIcon={<Download className="w-3.5 h-3.5" />}
             >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                  <span>Generating JSON Export...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 text-blue-600" />
-                  <span>Download Full JSON Export</span>
-                </>
-              )}
-            </button>
+              Export Complete Tenant JSON
+            </Button>
           </Card>
         </div>
 
-        {/* Right Column: Immutable Audit Logs (7 cols) */}
+        {/* Right Column: Immutable Audit Ledger (7 cols) */}
         <div className="lg:col-span-7">
-          <Card className="p-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+          <Card className="p-5 border-[#D9E2EC]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#D9E2EC] mb-3">
               <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  Platform Security & Audit Trails
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#172B45] flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#4779A8]" />
+                  Immutable Platform Audit Ledger
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Immutable ledger of operational mutations, transactions, and AI tool invocations.
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Append-only ledger of database mutations, sales entries, payment captures, and AI tool calls.
                 </p>
               </div>
             </div>
 
             {isLoadingLogs ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-2" />
+              <div className="flex flex-col items-center justify-center py-16 text-[#64748B]">
+                <Loader2 className="w-6 h-6 animate-spin text-[#4779A8] mb-2" />
                 <span className="text-xs">Loading audit ledger...</span>
               </div>
             ) : auditLogs.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                No audit events recorded yet. Perform actions like product creation, sales entry, or payment capture.
+              <div className="text-center py-12 text-[#64748B] text-xs bg-[#F8FAFC] rounded-lg border border-dashed border-[#D9E2EC]">
+                <Clock className="w-6 h-6 text-[#94A3B8] mx-auto mb-1.5" />
+                No audit events recorded yet. Mutations will appear here automatically.
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-[#F8FAFC] border-b border-[#D9E2EC] text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-3 py-2.5">Timestamp</th>
                       <th className="px-3 py-2.5">Action</th>
-                      <th className="px-3 py-2.5">Entity</th>
+                      <th className="px-3 py-2.5">Entity / Resource</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#F1F5F9]">
                     {auditLogs.slice(0, 15).map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-3 font-mono text-slate-500">
+                      <tr key={log.id} className="hover:bg-[#F8FAFC]">
+                        <td className="px-3 py-2.5 text-[#64748B]">
                           {new Date(log.created_at).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit',
                           })}
                         </td>
-                        <td className="px-3 py-3 font-bold text-slate-800">
-                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono">
+                        <td className="px-3 py-2.5 font-bold text-[#1E3A5F]">
+                          <span className="px-1.5 py-0.5 rounded bg-[#E8EEF5] text-[10px] text-[#1E3A5F]">
                             {log.action}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-slate-600 font-mono">
+                        <td className="px-3 py-2.5 text-[#334155]">
                           {log.entity_type || log.resource_type || 'SYSTEM'}{' '}
-                          {(log.entity_id || log.resource_id) ? `(${String(log.entity_id || log.resource_id).slice(0, 8)}...)` : ''}
+                          {log.entity_id || log.resource_id ? `(${String(log.entity_id || log.resource_id).slice(0, 8)}...)` : ''}
                         </td>
                       </tr>
                     ))}

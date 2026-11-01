@@ -69,11 +69,14 @@ export interface Customer {
 }
 
 export interface CustomerSegment {
+  id?: string;
+  name?: string;
   segment_name: string;
   customer_count: number;
   percentage: number;
   avg_recency_days: number;
   avg_frequency: number;
+  avg_spend?: number;
   avg_monetary: number;
   color?: string;
   description?: string;

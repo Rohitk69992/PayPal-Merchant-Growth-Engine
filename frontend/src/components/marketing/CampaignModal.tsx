@@ -26,7 +26,12 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
   const [isDone, setIsDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const segmentOptions = ['High-Value Champions', 'Loyal Customers', 'Promising Growth', 'At-Risk / Needs Attention'];
+  const segmentOptions = [
+    'High-Value Champions',
+    'Loyal Customers',
+    'Promising Growth',
+    'At-Risk / Needs Attention',
+  ];
 
   const handleCreate = async () => {
     setIsSubmitting(true);
@@ -59,31 +64,31 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Create Targeted Marketing Campaign"
-      subtitle="AI-Generated Strategy Grounded in RFM Customer Segments"
+      subtitle="AI-assisted campaign targeting grounded in verified RFM cohorts"
       maxWidth="md"
     >
       {isDone ? (
         <div className="py-8 text-center space-y-3">
-          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="w-12 h-12 bg-[#E8F6F3] rounded-full flex items-center justify-center mx-auto text-[#16A085] border border-[#A3E4D7]">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h4 className="text-lg font-bold text-slate-900">Campaign Activated!</h4>
-          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+          <h4 className="text-base font-bold text-[#172B45]">Campaign Activated</h4>
+          <p className="text-xs text-[#64748B] max-w-xs mx-auto">
             Targeted promotion recorded in marketing ledger. Promo code {discountCode} active.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 text-red-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <div className="p-3 rounded-lg bg-[#FADBD8] border border-[#F5B7B1] text-[#C45B61] text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Target Segment Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1.5">
               Select Target Segment
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -92,10 +97,10 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => setSegment(opt)}
-                  className={`px-3 py-2 text-xs font-semibold rounded-xl border text-center transition-all cursor-pointer ${
+                  className={`px-3 py-2 text-xs font-semibold rounded-lg border text-center transition-all cursor-pointer ${
                     segment === opt
-                      ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-[#DCEAF5] border-[#4779A8] text-[#1E3A5F] shadow-2xs font-bold'
+                      : 'border-[#D9E2EC] text-[#64748B] hover:bg-[#F1F5F9]'
                   }`}
                 >
                   {opt}
@@ -106,45 +111,45 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
 
           {/* Campaign Headline */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1">
               Campaign Title / Headline
             </label>
             <input
               type="text"
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
-              className="w-full text-xs font-semibold text-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+              className="w-full text-xs font-semibold text-[#172B45] px-3 py-2 rounded-lg border border-[#D9E2EC] focus:outline-none focus:border-[#4779A8]"
             />
           </div>
 
           {/* Email Subject Line */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-              Email / Notification Copy
+            <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1">
+              Notification / Offer Copy
             </label>
             <input
               type="text"
               value={emailSubject}
               onChange={(e) => setEmailSubject(e.target.value)}
-              className="w-full text-xs text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+              className="w-full text-xs text-[#172B45] px-3 py-2 rounded-lg border border-[#D9E2EC] focus:outline-none focus:border-[#4779A8]"
             />
           </div>
 
           {/* Discount & Code Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1">
                 Promo Code
               </label>
               <input
                 type="text"
                 value={discountCode}
                 onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                className="w-full text-xs font-mono font-bold text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full text-xs font-mono font-bold text-[#172B45] px-3 py-2 rounded-lg border border-[#D9E2EC] focus:outline-none focus:border-[#4779A8]"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-[#172B45] uppercase tracking-wider mb-1">
                 Discount %
               </label>
               <input
@@ -153,13 +158,13 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                 max="50"
                 value={discountPct}
                 onChange={(e) => setDiscountPct(parseInt(e.target.value) || 0)}
-                className="w-full text-xs font-bold text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full text-xs font-bold text-[#172B45] px-3 py-2 rounded-lg border border-[#D9E2EC] focus:outline-none focus:border-[#4779A8]"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D9E2EC]">
             <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
