@@ -25,26 +25,29 @@ def get_analytics_overview(
     thirty_days_ago = now - timedelta(days=30)
     sixty_days_ago = now - timedelta(days=60)
 
-    # Total balance = sum of received net amount minus payments
+    # Total balance = sum of received completed net amount minus payments
     total_received = db.query(func.coalesce(func.sum(Transaction.net_amount), 0.0)).filter(
         Transaction.merchant_id == current_merchant.id,
         Transaction.status == "COMPLETED",
-        Transaction.type == "RECEIVED"
+        Transaction.type == "RECEIVED",
+        Transaction.currency == current_merchant.currency
     ).scalar()
 
     total_payments = db.query(func.coalesce(func.sum(Transaction.gross_amount), 0.0)).filter(
         Transaction.merchant_id == current_merchant.id,
         Transaction.status == "COMPLETED",
-        Transaction.type == "PAYMENT"
+        Transaction.type == "PAYMENT",
+        Transaction.currency == current_merchant.currency
     ).scalar()
 
     current_balance = round(float(total_received) - float(total_payments), 2)
 
-    # 30-day gross sales
+    # 30-day gross sales: only COMPLETED RECEIVED transactions in merchant's currency
     sales_30d = db.query(func.coalesce(func.sum(Transaction.gross_amount), 0.0)).filter(
         Transaction.merchant_id == current_merchant.id,
         Transaction.status == "COMPLETED",
         Transaction.type == "RECEIVED",
+        Transaction.currency == current_merchant.currency,
         Transaction.transaction_date >= thirty_days_ago
     ).scalar()
 
@@ -53,6 +56,7 @@ def get_analytics_overview(
         Transaction.merchant_id == current_merchant.id,
         Transaction.status == "COMPLETED",
         Transaction.type == "RECEIVED",
+        Transaction.currency == current_merchant.currency,
         Transaction.transaction_date >= sixty_days_ago,
         Transaction.transaction_date < thirty_days_ago
     ).scalar()

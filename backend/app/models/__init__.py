@@ -11,7 +11,7 @@ from backend.app.models.user import (
     MerchantSetting
 )
 from backend.app.models.paypal import PayPalConnection, WebhookEvent, PayPalSyncJob
-from backend.app.models.transaction import Customer, Order, OrderItem, Transaction
+from backend.app.models.transaction import Customer, Order, OrderItem, Transaction, DataImportJob
 from backend.app.models.inventory import Product, InventoryMovement, DailySale, ReorderRecommendation, PurchaseOrderDraft
 from backend.app.models.analytics import CustomerSegment, CustomerSegmentAssignment, DemandForecast, MLModel, MLTrainingRun
 from backend.app.models.marketing import MarketingCampaign
@@ -36,6 +36,7 @@ __all__ = [
     "Order",
     "OrderItem",
     "Transaction",
+    "DataImportJob",
     "Product",
     "InventoryMovement",
     "DailySale",

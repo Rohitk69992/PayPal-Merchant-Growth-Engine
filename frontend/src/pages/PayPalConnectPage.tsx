@@ -9,6 +9,10 @@ import {
   ExternalLink,
   Loader2,
   DollarSign,
+  RefreshCw,
+  PowerOff,
+  UserCheck,
+  Clock,
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -26,11 +30,15 @@ export const PayPalConnectPage: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectMessage, setConnectMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Simulation Form State
-  const [simCustomerName, setSimCustomerName] = useState('Elena Rostova');
-  const [simCustomerEmail, setSimCustomerEmail] = useState('elena.rostova@example.com');
-  const [simAmount, setSimAmount] = useState('149.99');
-  const [simDescription, setSimDescription] = useState('Purchase of Wireless Headphones');
+  // Sync State
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  // Simulation Form State (Zero hardcoded defaults)
+  const [simCustomerName, setSimCustomerName] = useState('');
+  const [simCustomerEmail, setSimCustomerEmail] = useState('');
+  const [simAmount, setSimAmount] = useState('25.00');
+  const [simDescription, setSimDescription] = useState('');
   const [simProductId, setSimProductId] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<any | null>(null);
@@ -51,7 +59,7 @@ export const PayPalConnectPage: React.FC = () => {
       if (prods.length > 0 && !simProductId) {
         setSimProductId(prods[0].id);
         setSimAmount(prods[0].unitPrice.toFixed(2));
-        setSimDescription(`Purchase of ${prods[0].name}`);
+        setSimDescription(`Store Order: ${prods[0].name}`);
       }
     } catch (err) {
       console.error('Failed to load PayPal status:', err);
@@ -77,7 +85,7 @@ export const PayPalConnectPage: React.FC = () => {
       setStatus(res);
       setConnectMessage({
         type: 'success',
-        text: 'PayPal Sandbox REST credentials successfully verified and persisted.',
+        text: 'PayPal credentials verified and encrypted at rest.',
       });
     } catch (err: any) {
       setConnectMessage({
@@ -89,17 +97,48 @@ export const PayPalConnectPage: React.FC = () => {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect PayPal? Live automated syncing will be paused.')) {
+      return;
+    }
+    try {
+      await apiClient.disconnectPayPal();
+      await fetchStatus();
+      setConnectMessage({ type: 'success', text: 'PayPal connection deactivated.' });
+    } catch (err: any) {
+      setConnectMessage({ type: 'error', text: err.message || 'Failed to disconnect.' });
+    }
+  };
+
+  const handleSyncTransactions = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await apiClient.syncPayPal();
+      setSyncResult(res.message);
+      await fetchStatus();
+    } catch (err: any) {
+      setSyncResult(`Sync error: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleSimulatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!simCustomerEmail.trim()) {
+      setSimulationError('Customer email is required for payment simulation.');
+      return;
+    }
     setIsSimulating(true);
     setSimulationResult(null);
     setSimulationError(null);
     try {
       const res = await apiClient.simulateSandboxPayment({
         amount: parseFloat(simAmount),
-        description: simDescription,
+        description: simDescription || 'Sandbox Payment',
         customer_email: simCustomerEmail,
-        customer_name: simCustomerName,
+        customer_name: simCustomerName || 'Guest Shopper',
         product_id: simProductId || undefined,
       });
       setSimulationResult(res);
@@ -115,7 +154,7 @@ export const PayPalConnectPage: React.FC = () => {
     const prod = products.find((p) => p.id === prodId);
     if (prod) {
       setSimAmount(prod.unitPrice.toFixed(2));
-      setSimDescription(`Purchase of ${prod.name}`);
+      setSimDescription(`Store Order: ${prod.name}`);
     }
   };
 
@@ -150,10 +189,64 @@ export const PayPalConnectPage: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-[#64748B] mt-0.5">
-            Manage your REST credentials, webhook endpoints, and simulate real-time PayPal customer payment captures.
+            Partner consent onboarding, historical synchronization, encrypted credentials, and sandbox payment simulation.
           </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          {status?.is_connected && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncTransactions}
+              disabled={isSyncing}
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />}
+            >
+              {isSyncing ? 'Synchronizing...' : 'Sync Transactions'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {syncResult && (
+        <div className="p-3 bg-[#E8F6F3] border border-[#A3E4D7] rounded-lg text-xs text-[#16A085] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#16A085]" />
+            <span>{syncResult}</span>
+          </div>
+          <button onClick={() => setSyncResult(null)} className="text-[#64748B] hover:text-[#172B45]">✕</button>
+        </div>
+      )}
+
+      {/* Production Onboarding Notice */}
+      <Card className="p-4 bg-[#F8FAFC] border-[#D9E2EC]">
+        <div className="flex items-start gap-3">
+          <UserCheck className="w-5 h-5 text-[#4779A8] shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1E3A5F]">
+              Production Partner Consent Architecture
+            </h4>
+            <p className="text-xs text-[#334155] leading-relaxed">
+              In production, individual merchant seller data is accessed via <strong>PayPal Partner Onboarding / OAuth consent</strong>.
+              Platform-level application credentials are never conflated with seller account ownership. Below you may connect
+              dedicated merchant credentials or launch seller consent onboarding.
+            </p>
+            {status?.partner_onboarding_url && (
+              <div className="pt-2">
+                <a
+                  href={status.partner_onboarding_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1E3A5F] hover:bg-[#172B45] text-white rounded text-xs font-semibold transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Launch PayPal Seller Onboarding (Partner Referral)
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Connection Setup (5 cols) */}
@@ -162,15 +255,15 @@ export const PayPalConnectPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-[#D9E2EC] mb-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#172B45] flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#4779A8]" />
-                API Credentials
+                Direct API Credentials
               </h2>
               {status?.is_connected ? (
                 <span className="text-[10px] font-mono font-bold text-[#16A085] bg-[#E8F6F3] px-2 py-0.5 rounded border border-[#A3E4D7]">
-                  Verified
+                  Connected
                 </span>
               ) : (
                 <span className="text-[10px] font-mono text-[#64748B] bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#D9E2EC]">
-                  Unverified
+                  Unconfigured
                 </span>
               )}
             </div>
@@ -198,7 +291,7 @@ export const PayPalConnectPage: React.FC = () => {
                   className="w-full px-3 py-2 text-xs rounded-lg border border-[#D9E2EC] bg-white text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                 >
                   <option value="sandbox">Sandbox (Development / Testing)</option>
-                  <option value="production">Production (Live)</option>
+                  <option value="live">Live / Production</option>
                 </select>
               </div>
 
@@ -211,7 +304,7 @@ export const PayPalConnectPage: React.FC = () => {
                   required
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
-                  placeholder="e.g. A21AA...sandbox_client_id"
+                  placeholder="e.g. A21AA...merchant_client_id"
                   className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-[#D9E2EC] text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                 />
               </div>
@@ -230,29 +323,37 @@ export const PayPalConnectPage: React.FC = () => {
                 />
               </div>
 
-              <Button
-                type="submit"
-                variant="navy"
-                size="md"
-                isLoading={isConnecting}
-                className="w-full"
-              >
-                Save & Verify Credentials
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  variant="navy"
+                  size="md"
+                  isLoading={isConnecting}
+                  className="flex-1 justify-center"
+                >
+                  Save & Verify Credentials
+                </Button>
+                {status?.is_connected && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="md"
+                    onClick={handleDisconnect}
+                    className="text-[#C45B61] hover:bg-[#FDF2F2]"
+                  >
+                    <PowerOff className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             </form>
 
             <div className="mt-4 pt-3 border-t border-[#D9E2EC] text-xs text-[#64748B] space-y-2">
-              <a
-                href="https://developer.paypal.com/dashboard/applications/sandbox"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#4779A8] hover:text-[#1E3A5F] font-semibold flex items-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Get Sandbox Credentials on PayPal Developer Portal</span>
-              </a>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <Clock className="w-3.5 h-3.5 text-[#94A3B8]" />
+                <span>Last Sync: {status?.last_sync_at ? new Date(status.last_sync_at).toLocaleString() : 'Never'}</span>
+              </div>
               <p className="text-[11px] leading-relaxed text-[#94A3B8]">
-                Tokens and secrets are encrypted at rest using tenant isolation parameters before database storage.
+                Credentials encrypted at rest using AES-256 before persistence in PostgreSQL.
               </p>
             </div>
           </Card>
@@ -268,7 +369,7 @@ export const PayPalConnectPage: React.FC = () => {
                   Interactive Sandbox Payment Simulator
                 </h2>
                 <p className="text-xs text-[#64748B] mt-0.5">
-                  Simulate live PayPal transactions to verify webhook telemetry and fee deductions.
+                  Simulate live PayPal transactions into the unified ledger with verified fee calculation and stock deduction.
                 </p>
               </div>
             </div>
@@ -283,14 +384,13 @@ export const PayPalConnectPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#172B45] mb-1">
-                    Buyer Name *
+                    Buyer Name
                   </label>
                   <input
                     type="text"
-                    required
                     value={simCustomerName}
                     onChange={(e) => setSimCustomerName(e.target.value)}
-                    placeholder="Buyer Name"
+                    placeholder="e.g. Alex Morgan"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-[#D9E2EC] text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                   />
                 </div>
@@ -303,7 +403,7 @@ export const PayPalConnectPage: React.FC = () => {
                     required
                     value={simCustomerEmail}
                     onChange={(e) => setSimCustomerEmail(e.target.value)}
-                    placeholder="buyer@example.com"
+                    placeholder="e.g. alex.morgan@domain.com"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-[#D9E2EC] text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                   />
                 </div>
@@ -312,14 +412,14 @@ export const PayPalConnectPage: React.FC = () => {
               {products.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#172B45] mb-1">
-                    Associate Catalog Product (Auto-deducts inventory)
+                    Select Catalog Product
                   </label>
                   <select
                     value={simProductId}
                     onChange={(e) => handleProductSelect(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-lg border border-[#D9E2EC] bg-white text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                   >
-                    <option value="">-- Custom Order / Direct Settlement --</option>
+                    <option value="">-- Custom Order / Direct Payment --</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.sku}) — ${p.unitPrice.toFixed(2)} (Stock: {p.stockOnHand})
@@ -355,7 +455,7 @@ export const PayPalConnectPage: React.FC = () => {
                     type="text"
                     value={simDescription}
                     onChange={(e) => setSimDescription(e.target.value)}
-                    placeholder="Payment for goods"
+                    placeholder="Payment for merchandise"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-[#D9E2EC] text-[#172B45] focus:outline-none focus:border-[#4779A8]"
                   />
                 </div>
@@ -366,7 +466,7 @@ export const PayPalConnectPage: React.FC = () => {
                 variant="primary"
                 size="md"
                 isLoading={isSimulating}
-                className="w-full"
+                className="w-full justify-center"
                 leftIcon={<Zap className="w-4 h-4" />}
               >
                 Execute Sandbox Payment Capture
@@ -382,31 +482,37 @@ export const PayPalConnectPage: React.FC = () => {
                     Payment Captured Successfully
                   </span>
                   <Badge variant="success" size="sm">
-                    {simulationResult.transaction.status}
+                    {simulationResult.transaction?.status || 'COMPLETED'}
                   </Badge>
                 </div>
 
                 <div className="text-xs text-[#334155] space-y-1 pt-1 font-mono">
                   <div className="flex justify-between">
                     <span className="text-[#64748B]">PayPal Order ID:</span>
-                    <span className="font-bold text-[#172B45]">{simulationResult.transaction.paypal_order_id}</span>
+                    <span className="font-bold text-[#172B45]">{simulationResult.paypal_order_id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#64748B]">Gross Captured:</span>
-                    <span className="font-bold text-[#172B45]">${simulationResult.transaction.gross_amount.toFixed(2)}</span>
+                    <span className="text-[#64748B]">Gross Amount:</span>
+                    <span className="font-bold text-[#172B45]">
+                      ${Number(simulationResult.gross_amount).toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#64748B]">Interchange Fee (2.9% + $0.30):</span>
-                    <span className="font-bold text-[#C45B61]">-${simulationResult.transaction.fee_amount.toFixed(2)}</span>
+                    <span className="font-bold text-[#C45B61]">
+                      -${Number(simulationResult.paypal_fee).toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between border-t border-[#A3E4D7] pt-1">
                     <span className="font-bold text-[#172B45] font-sans">Net Merchant Deposit:</span>
-                    <span className="font-bold text-[#16A085]">${simulationResult.transaction.net_amount.toFixed(2)}</span>
+                    <span className="font-bold text-[#16A085]">
+                      ${Number(simulationResult.net_amount).toFixed(2)}
+                    </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-[#16A085] pt-1">
-                  ✓ Recorded to Transactions ledger, updated customer profile, and credited merchant balance.
+                  ✓ Ingested via UnifiedTransactionService: inventory decremented, customer profile updated, daily sales aggregated.
                 </p>
               </div>
             )}

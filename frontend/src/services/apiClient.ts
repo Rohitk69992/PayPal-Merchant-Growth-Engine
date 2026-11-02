@@ -15,6 +15,10 @@ import type {
   PayPalConnectionStatus,
   AnalyticsOverview,
   AgentChatMessage,
+  ManualSaleRequest,
+  CsvPreviewResponse,
+  ImportSummaryResponse,
+  DataImportJob,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
@@ -275,10 +279,41 @@ class ApiClient {
     });
   }
 
-  async importSalesCsv(csvContent: string): Promise<{ imported_count: number; message: string }> {
-    return this.request('/sales/import-csv', {
+  async getCsvTemplate(): Promise<string> {
+    const url = `${BASE_URL}/sales/csv-template`;
+    const res = await fetch(url, { headers: this.getHeaders() });
+    return res.text();
+  }
+
+  async previewSalesCsv(csvContent: string): Promise<CsvPreviewResponse> {
+    return this.request('/sales/csv-preview', {
       method: 'POST',
       body: JSON.stringify({ csv_content: csvContent }),
+    });
+  }
+
+  async importSalesCsv(
+    csvContent: string,
+    deductInventory: boolean = false,
+    skipDuplicates: boolean = true
+  ): Promise<ImportSummaryResponse> {
+    return this.request(
+      `/sales/import-csv?deduct_inventory=${deductInventory}&skip_duplicates=${skipDuplicates}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ csv_content: csvContent }),
+      }
+    );
+  }
+
+  async getImportHistory(): Promise<DataImportJob[]> {
+    return this.request('/sales/import-history');
+  }
+
+  async recordManualSale(data: ManualSaleRequest): Promise<Transaction> {
+    return this.request('/sales/manual', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
@@ -407,6 +442,34 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async syncPayPal(startDate?: string, endDate?: string): Promise<{
+    job_id: string;
+    status: string;
+    records_synced: number;
+    message: string;
+  }> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const qs = params.toString();
+    return this.request(`/paypal/sync${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+    });
+  }
+
+  async disconnectPayPal(): Promise<any> {
+    return this.request('/paypal/disconnect', { method: 'POST' });
+  }
+
+  async createPartnerOnboardingLink(): Promise<{
+    status: string;
+    action_url: string;
+    tracking_id: string;
+    message: string;
+  }> {
+    return this.request('/paypal/partner-onboarding-link', { method: 'POST' });
   }
 
   // --- Analytics & ML Endpoints ---

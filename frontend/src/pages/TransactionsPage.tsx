@@ -20,6 +20,7 @@ import type { Transaction } from '../types';
 export const TransactionsPage: React.FC = () => {
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterSource, setFilterSource] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -34,7 +35,13 @@ export const TransactionsPage: React.FC = () => {
         search: searchQuery || undefined,
       })
       .then((res) => {
-        if (isCurrent) setTransactions(res.items);
+        if (isCurrent) {
+          let list = res.items;
+          if (filterSource !== 'ALL') {
+            list = list.filter((t) => (t.source || '').toUpperCase().includes(filterSource));
+          }
+          setTransactions(list);
+        }
       })
       .catch((err) => console.error(err))
       .finally(() => {
@@ -43,7 +50,7 @@ export const TransactionsPage: React.FC = () => {
     return () => {
       isCurrent = false;
     };
-  }, [filterType, searchQuery]);
+  }, [filterType, filterSource, searchQuery]);
 
   const filterTabs = [
     { label: 'All Transactions', value: 'ALL' },
@@ -123,34 +130,59 @@ export const TransactionsPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-3 rounded-lg border border-[#D9E2EC] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto no-scrollbar">
-          {filterTabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setFilterType(tab.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
-                filterType === tab.value
-                  ? 'bg-[#1E3A5F] text-white shadow-2xs font-bold'
-                  : 'text-[#64748B] hover:text-[#172B45] hover:bg-[#F1F5F9]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="bg-white p-3 rounded-lg border border-[#D9E2EC] shadow-2xs flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Transaction Type Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto no-scrollbar">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setFilterType(tab.value)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
+                  filterType === tab.value
+                    ? 'bg-[#1E3A5F] text-white shadow-2xs font-bold'
+                    : 'text-[#64748B] hover:text-[#172B45] hover:bg-[#F1F5F9]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by order ID, buyer, title..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-[#D9E2EC] text-[#172B45] placeholder-[#94A3B8] focus:outline-none focus:border-[#4779A8]"
+            />
+          </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by order ID, buyer, title..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-[#D9E2EC] text-[#172B45] placeholder-[#94A3B8] focus:outline-none focus:border-[#4779A8]"
-          />
+        {/* Source Origin Filters */}
+        <div className="flex items-center gap-2 pt-2 border-t border-[#F1F5F9] text-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Data Origin:</span>
+          {[
+            { label: 'All Sources', value: 'ALL' },
+            { label: 'PayPal', value: 'PAYPAL' },
+            { label: 'Manual Sales', value: 'MANUAL' },
+            { label: 'CSV Import', value: 'CSV' },
+          ].map((src) => (
+            <button
+              key={src.value}
+              onClick={() => setFilterSource(src.value)}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                filterSource === src.value
+                  ? 'bg-[#E8EEF5] text-[#1E3A5F] font-bold border border-[#CBD5E1]'
+                  : 'text-[#64748B] hover:text-[#172B45]'
+              }`}
+            >
+              {src.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -226,8 +258,16 @@ export const TransactionsPage: React.FC = () => {
                     <td className="px-4 py-3 text-[#64748B] font-mono text-[11px]">
                       {tx.formattedDate || new Date(tx.date).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 font-sans text-[#64748B] text-[11px]">
-                      {tx.source || 'PayPal Wallet'}
+                    <td className="px-4 py-3 font-sans text-[11px]">
+                      {tx.source?.includes('PAYPAL') ? (
+                        <Badge variant="navy" size="sm">PayPal</Badge>
+                      ) : tx.source?.includes('MANUAL') ? (
+                        <Badge variant="neutral" size="sm">Manual</Badge>
+                      ) : tx.source?.includes('CSV') ? (
+                        <Badge variant="primary" size="sm">CSV Import</Badge>
+                      ) : (
+                        <span className="text-[#64748B]">{tx.source || 'Direct'}</span>
+                      )}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-bold text-xs ${

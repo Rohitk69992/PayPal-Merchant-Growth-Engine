@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -51,6 +51,8 @@ class TransactionResponse(BaseModel):
     customer_id: Optional[str] = None
     customer_name: Optional[str] = None
     paypal_transaction_id: Optional[str] = None
+    external_reference_id: Optional[str] = None
+    import_job_id: Optional[str] = None
     type: str
     gross_amount: float
     fee_amount: float
@@ -62,6 +64,80 @@ class TransactionResponse(BaseModel):
     title: str
     category: str
     notes: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ManualSaleRequest(BaseModel):
+    product_id: Optional[str] = None
+    sku: Optional[str] = None
+    quantity: int = Field(default=1, gt=0)
+    unit_price: Optional[float] = None
+    total_amount: Optional[float] = None
+    currency: Optional[str] = None
+    transaction_date: Optional[datetime] = None
+    payment_method: str = Field(default="MANUAL_CASH")
+    transaction_status: str = Field(default="COMPLETED")
+    customer_name: Optional[str] = None
+    customer_email: Optional[EmailStr] = None
+    customer_city: Optional[str] = None
+    customer_country: Optional[str] = None
+    deduct_inventory: bool = True
+    notes: Optional[str] = None
+
+class CsvPreviewRow(BaseModel):
+    row_number: int
+    date: str
+    sku: Optional[str] = None
+    product_name: Optional[str] = None
+    quantity: int
+    unit_price: float
+    total_amount: float
+    currency: str
+    customer_email: Optional[str] = None
+    customer_name: Optional[str] = None
+    payment_method: str
+    status: str
+    external_id: Optional[str] = None
+    validation_status: str  # VALID, INVALID, DUPLICATE
+    error_message: Optional[str] = None
+
+class CsvRowError(BaseModel):
+    row_number: int
+    field: str
+    error: str
+    raw_data: Optional[Dict[str, Any]] = None
+
+class CsvPreviewResponse(BaseModel):
+    total_rows: int
+    valid_rows_count: int
+    invalid_rows_count: int
+    duplicate_count: int
+    detected_columns: List[str]
+    preview_rows: List[CsvPreviewRow]
+    errors: List[CsvRowError]
+
+class ImportSummaryResponse(BaseModel):
+    job_id: str
+    status: str
+    total_rows: int
+    imported_records: int
+    failed_records: int
+    skipped_duplicates: int
+    errors: List[Dict[str, Any]]
+    message: str
+
+class DataImportJobResponse(BaseModel):
+    id: str
+    source_type: str
+    filename: Optional[str] = None
+    status: str
+    total_rows: int
+    imported_records: int
+    failed_records: int
+    skipped_duplicates: int
+    error_summary: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -44,6 +44,7 @@ def test_all_tables_exist_in_postgres(pg_session):
         "paypal_sync_jobs", "customer_segments", "customer_segment_assignments",
         "demand_forecasts", "ml_models", "ml_training_runs", "marketing_campaigns",
         "agent_conversations", "agent_messages", "agent_tool_executions", "audit_logs",
+        "data_import_jobs",
         "alembic_version"
     }
     

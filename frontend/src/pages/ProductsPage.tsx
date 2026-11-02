@@ -42,14 +42,14 @@ export const ProductsPage: React.FC = () => {
   // New product form fields
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Electronics');
-  const [unitCost, setUnitCost] = useState('45.00');
-  const [unitPrice, setUnitPrice] = useState('89.99');
-  const [stockOnHand, setStockOnHand] = useState('50');
-  const [reorderThreshold, setReorderThreshold] = useState('15');
-  const [safetyStock, setSafetyStock] = useState('10');
-  const [leadTimeDays, setLeadTimeDays] = useState('7');
-  const [supplierName, setSupplierName] = useState('Prime Supply Co.');
+  const [category, setCategory] = useState('');
+  const [unitCost, setUnitCost] = useState('');
+  const [unitPrice, setUnitPrice] = useState('');
+  const [stockOnHand, setStockOnHand] = useState('');
+  const [reorderThreshold, setReorderThreshold] = useState('');
+  const [safetyStock, setSafetyStock] = useState('');
+  const [leadTimeDays, setLeadTimeDays] = useState('');
+  const [supplierName, setSupplierName] = useState('');
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -164,20 +164,17 @@ export const ProductsPage: React.FC = () => {
   const resetForm = () => {
     setSku('');
     setName('');
-    setCategory('Electronics');
-    setUnitCost('45.00');
-    setUnitPrice('89.99');
-    setStockOnHand('50');
-    setReorderThreshold('15');
-    setSafetyStock('10');
-    setLeadTimeDays('7');
-    setSupplierName('Prime Supply Co.');
+    setCategory('');
+    setUnitCost('');
+    setUnitPrice('');
+    setStockOnHand('');
+    setReorderThreshold('');
+    setSafetyStock('');
+    setLeadTimeDays('');
+    setSupplierName('');
   };
 
-  const sampleCsv = `sku,name,category,unit_cost,unit_price,stock_on_hand,reorder_point,safety_stock,lead_time_days,supplier_name
-WH-1000,Wireless Noise-Canceling Headphones,Electronics,65.00,149.99,40,15,10,7,Acro Sound Labs
-SW-400,Fitness Smartwatch Pro,Electronics,45.00,99.99,12,20,10,5,Zenith Tech
-BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear`;
+  const csvTemplateHeader = `sku,name,category,unit_cost,unit_price,stock_on_hand,reorder_point,safety_stock,lead_time_days,supplier_name`;
 
   return (
     <div className="space-y-5 pb-6">
@@ -202,7 +199,7 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
             variant="outline"
             size="sm"
             onClick={() => {
-              setCsvContent(sampleCsv);
+              setCsvContent('');
               setIsCsvModalOpen(true);
             }}
             leftIcon={<Upload className="w-3.5 h-3.5 text-[#4779A8]" />}
@@ -255,11 +252,11 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setCsvContent(sampleCsv);
+                  setCsvContent('');
                   setIsCsvModalOpen(true);
                 }}
               >
-                Upload Sample CSV
+                Import CSV
               </Button>
               <Button
                 variant="primary"
@@ -544,14 +541,24 @@ BP-50,Waterproof Commuter Backpack,Accessories,25.00,59.99,65,15,8,10,Nomad Gear
         subtitle="Import catalog items in standard comma-separated format"
         maxWidth="lg"
       >
-        <p className="text-xs text-[#64748B] mb-2">
-          Required header order: <code className="font-mono text-[#1E3A5F] bg-[#E8EEF5] px-1.5 py-0.5 rounded">sku,name,category,unit_cost,unit_price,stock_on_hand,reorder_point,safety_stock,lead_time_days,supplier_name</code>
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-[#64748B]">
+            Required header order: <code className="font-mono text-[#1E3A5F] bg-[#E8EEF5] px-1.5 py-0.5 rounded">sku,name,category,unit_cost,unit_price,stock_on_hand,reorder_point,safety_stock,lead_time_days,supplier_name</code>
+          </p>
+          <button
+            type="button"
+            onClick={() => setCsvContent(csvTemplateHeader + '\n')}
+            className="text-[11px] font-medium text-[#4779A8] hover:underline"
+          >
+            Insert Header
+          </button>
+        </div>
 
         <textarea
           rows={7}
           value={csvContent}
           onChange={(e) => setCsvContent(e.target.value)}
+          placeholder={`sku,name,category,unit_cost,unit_price,stock_on_hand,reorder_point,safety_stock,lead_time_days,supplier_name\n...`}
           className="w-full p-3 font-mono text-xs border border-[#D9E2EC] rounded-lg bg-[#F8FAFC] text-[#172B45] focus:outline-none focus:border-[#4779A8]"
         />
 

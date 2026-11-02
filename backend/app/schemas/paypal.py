@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 class PayPalConnectRequest(BaseModel):
     client_id: str = Field(min_length=10)
@@ -15,11 +15,19 @@ class PayPalStatusResponse(BaseModel):
     webhook_id: Optional[str] = None
     last_sync_at: Optional[datetime] = None
     mode: str = "MODE_B_MERCHANT_CONNECT"  # or MODE_A_TEAM_SANDBOX
+    consent_status: Optional[str] = "GRANTED"
+    partner_onboarding_url: Optional[str] = None
 
 class SimulatePaymentRequest(BaseModel):
-    amount: float = Field(default=49.99, gt=0.0)
-    description: Optional[str] = "Online Store Purchase"
+    amount: float = Field(gt=0.0)
+    description: Optional[str] = None
     product_sku: Optional[str] = None
     product_id: Optional[str] = None
-    customer_email: str = Field(default="customer@buyer.com")
-    customer_name: str = Field(default="Jane Shopper")
+    customer_email: Optional[EmailStr] = None
+    customer_name: Optional[str] = None
+
+class PayPalSyncResponse(BaseModel):
+    job_id: str
+    status: str
+    records_synced: int
+    message: str

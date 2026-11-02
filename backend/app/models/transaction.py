@@ -1,11 +1,30 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Numeric, Integer, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Column, String, Numeric, Integer, DateTime, ForeignKey, Text, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
+
+class DataImportJob(Base):
+    __tablename__ = "data_import_jobs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchant_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_type = Column(String(50), nullable=False)  # CSV_IMPORT, PAYPAL_SYNC, MANUAL_BATCH
+    filename = Column(String(255), nullable=True)
+    status = Column(String(50), default="COMPLETED", nullable=False)  # PENDING, PROCESSING, COMPLETED, FAILED, PARTIAL
+    total_rows = Column(Integer, default=0, nullable=False)
+    imported_records = Column(Integer, default=0, nullable=False)
+    failed_records = Column(Integer, default=0, nullable=False)
+    skipped_duplicates = Column(Integer, default=0, nullable=False)
+    error_summary = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    merchant = relationship("MerchantProfile")
+    transactions = relationship("Transaction", back_populates="import_job")
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -75,12 +94,14 @@ class Transaction(Base):
     order_id = Column(String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_id = Column(String(36), ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
     paypal_transaction_id = Column(String(64), nullable=True, index=True)
+    external_reference_id = Column(String(100), nullable=True, index=True)
+    import_job_id = Column(String(36), ForeignKey("data_import_jobs.id", ondelete="SET NULL"), nullable=True, index=True)
     type = Column(String(30), default="PAYMENT", nullable=False)  # PAYMENT, RECEIVED, REFUND
     gross_amount = Column(Numeric(12, 2), nullable=False)
     fee_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
     net_amount = Column(Numeric(12, 2), nullable=False)
     currency = Column(String(3), default="USD", nullable=False)
-    status = Column(String(50), default="COMPLETED", nullable=False)  # COMPLETED, PENDING, REFUNDED, DISPUTED
+    status = Column(String(50), default="COMPLETED", nullable=False)  # COMPLETED, PENDING, REFUNDED, DISPUTED, FAILED
     payment_source = Column(String(50), default="PAYPAL_CHECKOUT", nullable=False)
     transaction_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     title = Column(String(255), nullable=False)
@@ -88,6 +109,12 @@ class Transaction(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
+    __table_args__ = (
+        Index("ix_transactions_merchant_date", "merchant_id", "transaction_date"),
+        Index("ix_transactions_merchant_status", "merchant_id", "status"),
+    )
+
     merchant = relationship("MerchantProfile", back_populates="transactions")
     customer = relationship("Customer", back_populates="transactions")
     order = relationship("Order", back_populates="transaction")
+    import_job = relationship("DataImportJob", back_populates="transactions")

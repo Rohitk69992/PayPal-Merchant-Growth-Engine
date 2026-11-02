@@ -19,11 +19,12 @@ def tool_get_merchant_overview(merchant_id: str, db: Session) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
 
-    # Gross revenue
+    # Gross revenue: only COMPLETED RECEIVED sales in merchant currency
     gross_sales = db.query(func.coalesce(func.sum(Transaction.gross_amount), 0.0)).filter(
         Transaction.merchant_id == merchant_id,
         Transaction.status == "COMPLETED",
-        Transaction.type.in_(["RECEIVED", "PAYMENT"])
+        Transaction.type == "RECEIVED",
+        Transaction.currency == merchant.currency
     ).scalar()
 
     tx_count = db.query(Transaction).filter(
@@ -68,7 +69,7 @@ def tool_get_inventory_status(merchant_id: str, db: Session) -> Dict[str, Any]:
             "current_stock": p.current_stock,
             "safety_stock": p.safety_stock,
             "lead_time_days": p.lead_time_days,
-            "unit_cost": p.unit_cost,
+            "unit_cost": float(p.unit_cost),
             "status": status_label
         })
 
@@ -93,8 +94,8 @@ def tool_get_customer_segments(merchant_id: str, db: Session) -> Dict[str, Any]:
             {
                 "name": s.name,
                 "customer_count": s.customer_count,
-                "percentage": s.percentage,
-                "avg_spend": s.avg_spend,
+                "percentage": float(s.percentage),
+                "avg_spend": float(s.avg_spend),
                 "avg_recency_days": s.avg_recency_days
             } for s in segments
         ]

@@ -121,6 +121,7 @@ export interface DailySale {
   id: string;
   product_id: string;
   product_name?: string;
+  sku?: string;
   date: string;
   units_sold: number;
   revenue: number;
@@ -193,6 +194,8 @@ export interface PayPalConnectionStatus {
   webhook_id?: string;
   environment?: string;
   updated_at?: string;
+  last_sync_at?: string;
+  partner_onboarding_url?: string;
 }
 
 export interface AnalyticsOverview {
@@ -218,4 +221,82 @@ export interface AgentChatMessage {
     status: string;
   }[];
   timestamp: string;
+}
+
+export interface ManualSaleRequest {
+  product_id?: string;
+  sku?: string;
+  quantity: number;
+  unit_price?: number;
+  total_amount?: number;
+  currency?: string;
+  transaction_date?: string;
+  payment_method?: string;
+  transaction_status?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_city?: string;
+  customer_country?: string;
+  deduct_inventory?: boolean;
+  notes?: string;
+}
+
+export interface CsvPreviewRow {
+  row_number: number;
+  date: string;
+  sku?: string;
+  product_name?: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  currency: string;
+  customer_email?: string;
+  customer_name?: string;
+  payment_method: string;
+  status: string;
+  external_id?: string;
+  validation_status: 'VALID' | 'INVALID' | 'DUPLICATE';
+  error_message?: string;
+}
+
+export interface CsvRowError {
+  row_number: number;
+  field: string;
+  error: string;
+  raw_data?: Record<string, any>;
+}
+
+export interface CsvPreviewResponse {
+  total_rows: number;
+  valid_rows_count: number;
+  invalid_rows_count: number;
+  duplicate_count: number;
+  detected_columns: string[];
+  preview_rows: CsvPreviewRow[];
+  errors: CsvRowError[];
+}
+
+export interface ImportSummaryResponse {
+  job_id: string;
+  status: string;
+  total_rows: number;
+  imported_records: number;
+  failed_records: number;
+  skipped_duplicates: number;
+  errors: Array<{ row?: number; field?: string; error?: string }>;
+  message: string;
+}
+
+export interface DataImportJob {
+  id: string;
+  source_type: string;
+  filename?: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIAL';
+  total_rows: number;
+  imported_records: number;
+  failed_records: number;
+  skipped_duplicates: number;
+  error_summary?: string;
+  created_at: string;
+  completed_at?: string;
 }
